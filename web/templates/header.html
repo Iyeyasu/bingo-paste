@@ -1,0 +1,12 @@
+<div class="navbar">
+    <div class="navbar__left">
+        {{ template "icon.html" }}
+        <div class="navbar__title">{{ .Title }}</div>
+    </div>
+    <div class="navbar__middle"></div>
+    <div class="navbar__right">
+        {{ template "dropdown_syntax.html" }}
+        {{ template "dropdown_visibility.html" }}
+        {{ template "dropdown_ttl.html" }}
+    </div>
+</div>

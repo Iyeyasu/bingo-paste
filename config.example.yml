@@ -1,0 +1,16 @@
+view:
+  name: "BINGO"
+  icon: /path/to/icon.svg
+
+db:
+  driver: postgres
+  host: db
+  port: 5432
+  database: bingo
+  username: bingo
+  password: bingo
+
+modules:
+  ttl:
+  syntax:
+  encryption:

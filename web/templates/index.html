@@ -1,0 +1,16 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>{{ .Title }}</title>
+    <meta name="description" content="{{ .Title }}">
+</head>
+
+<body>
+    <script>{{ .JavaScript }}</script>
+    {{ template "header.html" }}
+    {{ template "editor.html" }}
+    <style>{{ .CSS }}</style>
+</body>
+
+</html>
