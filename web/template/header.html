@@ -5,10 +5,11 @@
             <div class="navbar__title">{{ .Title }}</div>
         </a>
     </div>
-    <div class="navbar__middle"></div>
-    <div class="navbar__right">
+    <div class="navbar__middle">
         {{ template "dropdown_syntax.html" . }}
         {{ template "dropdown_visibility.html" . }}
         {{ template "dropdown_retention.html" . }}
+    </div>
+    <div class="navbar__right">
     </div>
 </div>

@@ -1,17 +1,33 @@
 :root {
-  --fg-light: #1B1D24;
-  --bg-light: #F7F7F7;
-  --focus-light: #cccccc;
+  --fg-header: #ffffff;
+  --bg-header: #1b1d24;
+  --fg-editor: #1b1d24;
+  --bg-editor: #fdfdfd;
+  --bg-body: #fafafa;
+  --border-editor: #fafafa;
+  --icon-color: #3c3f4d;
+  --focus-color: #3498db;
 
   --field-height: 2.1em;
   --field-width: 10em;
-  --field-spacing: 0.5em;
+  --field-spacing: 1em;
   --header-height: 4.4em;
 
-  --font-size-navbar-title: 1.38em;
-  --font-size-editor-title: 1.3em;
-  --font-size-editor-body: 1.3em;
+  --font-size-navbar-title: 1.4em;
+  /* --font-size-editor-title: 1.3em; */
+  --font-size-editor-body: 1.0em;
   --font-size-dropdown: 1.3em;
+}
+
+[data-theme="dark"] {
+  --fg-header: #c6cbcf;
+  --bg-header: #14161b;
+  --fg-editor: #c6cbcf;
+  --bg-editor: #22252c;
+  --bg-body: #1b1d24;
+  --border-editor: #1b1d24;
+  --icon-color: #b4bcc2;
+  --focus-color: #3498db;
 }
 
 body {
@@ -25,8 +41,8 @@ body {
   align-content: center;
   justify-content: center;
 
-  color: var(--body-fg-light);
-  background-color: var(--body-bg-light);
+  color: var(--fg-editor);
+  background-color: var(--bg-body);
 }
 
 .navbar {
@@ -40,11 +56,19 @@ body {
   align-content: center;
   justify-content: center;
 
-  color: var(--bg-light);
-  background-color: var(--fg-light);
+  color: var(--fg-header);
+  background-color: var(--bg-header);
 }
 
 .navbar__left {
+  display: flex;
+  flex-basis: 20em;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.navbar__middle {
+  flex-grow: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -52,8 +76,9 @@ body {
 
 .navbar__right {
   display: flex;
+  flex-basis: 20em;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .navbar__home {
@@ -64,13 +89,6 @@ body {
   text-decoration: none;
 }
 
-.navbar__middle {
-  flex-grow: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .navbar__icon {
   width: 2.0em;
   height: 2.0em;
@@ -79,7 +97,7 @@ body {
 .navbar__title {
   margin-left: 0.4em;
   font-size: var(--font-size-navbar-title);
-  color: var(--bg-light);
+  color: var(--fg-header);
 }
 
 .navbar__search {
@@ -94,27 +112,28 @@ body {
   width: 100%;
 }
 
-.editor__title {
+/* .editor__title {
   font-size: var(--font-size-editor-title);
   height: 2.8em;
   border: none;
   border-bottom: solid 1px #ccc;
   padding: 0.0em 1.0em;
-  color: var(--fg-light);
-  background-color: var(--bg-light);
-}
+  color: var(--fg-editor);
+  background-color: var(--bg-editor);
+} */
 
 .editor__body {
-  width: 100%;
+  width: 80em;
   height: 100%;
+  margin: auto;
   resize: none;
-  border: none;
+  border: solid 1px var(--border-editor);
   border-top: 0;
-  padding: 1.2em 1.2em;
+  border-bottom: 0;
+  padding: 1.0em 1.2em;
   font-size: var(--font-size-editor-body);
-  margin: 0;
-  color: var(--fg-light);
-  background-color: var(--bg-light);
+  color: var(--fg-editor);
+  background-color: var(--bg-editor);
 }
 
 .options__dropdown {
@@ -124,7 +143,7 @@ body {
   width: var(--field-width);
   height: var(--field-height);
   border: none;
-  border-radius: 0;
+  border-radius: 2px;
   overflow: hidden;
 }
 
@@ -133,8 +152,8 @@ body {
   width: 100%;
   height: 100%;
   border: none;
-  color: var(--fg-light);
-  background-color: var(--bg-light);
+  color: var(--fg-editor);
+  background-color: var(--bg-editor);
   background-image: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -147,12 +166,12 @@ body {
 .options__dropdown > select:focus,
 .options__dropdown > select:hover {
     outline: none;
-    background-color: var(--focus-light);
+    background-color: var(--focus-color);
 }
 
 .options__dropdown > select:-moz-focusring {
     color: transparent;
-   text-shadow: 0 0 0 var(--fg-light);
+   text-shadow: 0 0 0 var(--fg-editor);
 }
 
 .options__dropdown > .options__dropdown__icon {
@@ -160,7 +179,7 @@ body {
   width: 1.2em;
   height: 1.2em;
   text-align: center;
-  color: var(--body-fg-light);
+  fill: var(--icon-color);
   pointer-events: none;
 }
 

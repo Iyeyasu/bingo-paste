@@ -5,10 +5,16 @@ import (
 	"net/http"
 
 	"github.com/Iyeyasu/bingo-paste/internal/api"
+	"github.com/Iyeyasu/bingo-paste/internal/model"
 	"github.com/Iyeyasu/bingo-paste/internal/view"
 )
 
 func main() {
+	_, err := model.OpenDB()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	var pasteView view.PasteView
 	pasteView.Handle("/")
 
@@ -19,7 +25,6 @@ func main() {
 	endPoint.Handle("/api/v1/paste/")
 
 	http.HandleFunc("/favicon.ico", faviconHandler)
-
 	log.Fatal(http.ListenAndServe(":80", nil))
 }
 

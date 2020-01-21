@@ -1,6 +1,7 @@
 view:
   name: "BINGO"
   icon: /path/to/icon.svg
+  css: /path/to/style.css
 
 db:
   driver: postgres
@@ -9,8 +10,4 @@ db:
   database: bingo
   username: bingo
   password: bingo
-
-modules:
-  ttl:
-  syntax:
-  encryption:
+  ssl: disable

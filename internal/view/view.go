@@ -21,14 +21,14 @@ type view struct {
 }
 
 func (view *view) initialize(uri string, ctx *renderContext) {
-	log.Printf("Initialize view %s.", uri)
+	log.Printf("Initialize view '%s'.", uri)
 
 	view.uri = uri
 	view.template = view.renderTemplate(uri, ctx)
 }
 
 func (view *view) render(w http.ResponseWriter, req *http.Request) {
-	log.Printf("Render view %s.", view.uri)
+	log.Printf("Render view '%s'.", view.uri)
 
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 
@@ -39,12 +39,12 @@ func (view *view) render(w http.ResponseWriter, req *http.Request) {
 	var paste model.Paste
 	err := view.template.Execute(w, paste)
 	if err != nil {
-		log.Printf("Failed to render view %s.", view.uri)
+		log.Printf("Failed to render view '%s'.", view.uri)
 	}
 }
 
 func (view *view) renderTemplate(name string, ctx *renderContext) *template.Template {
-	log.Printf("Render view template %s.", name)
+	log.Printf("Render view template '%s'.", name)
 
 	var buf bytes.Buffer
 	tmpl := template.Must(template.ParseGlob("web/template/*.html"))
@@ -56,6 +56,7 @@ func (view *view) renderTemplate(name string, ctx *renderContext) *template.Temp
 }
 
 func minifyTemplate(str string) string {
+
 	m := minify.New()
 	m.AddFunc("text/css", css.Minify)
 	m.AddFunc("text/html", html.Minify)
@@ -67,8 +68,6 @@ func minifyTemplate(str string) string {
 	if err != nil {
 		log.Panicln("Failed to minify HTML template")
 	}
-
-	log.Println(res)
 
 	return res
 }
