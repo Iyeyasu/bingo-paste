@@ -1,6 +1,6 @@
 version: '3'
 services:
-  flask_tester_app:
+  bingo:
     container_name: bingo
     image: bingo:latest
     ports:

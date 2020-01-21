@@ -22,6 +22,5 @@
 vendor/
 
 ### Go Patch ###
-/build
 /vendor/
 /Godeps/
