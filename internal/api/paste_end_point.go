@@ -17,48 +17,48 @@ func (endPoint *PasteEndPoint) Handle(uri string) {
 	http.HandleFunc(uri, handle)
 }
 
-func handle(rw http.ResponseWriter, req *http.Request) {
+func handle(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
-		get(rw, req)
+		get(w, req)
 	case "POST":
-		post(rw, req)
+		post(w, req)
 	case "DELETE":
-		delete(rw, req)
+		delete(w, req)
 	default:
-		notFound(rw, req)
+		notFound(w, req)
 	}
 }
 
-func get(rw http.ResponseWriter, req *http.Request) {
+func get(w http.ResponseWriter, req *http.Request) {
 	var paste model.Paste
-	encode := json.NewEncoder(rw)
+	encode := json.NewEncoder(w)
 	encode.Encode(paste)
 }
 
-func post(rw http.ResponseWriter, req *http.Request) {
+func post(w http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(req.Body)
 	decoder.DisallowUnknownFields()
 
 	var paste model.Paste
 	err := decoder.Decode(&paste)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if decoder.More() {
-		http.Error(rw, "extraneous data after JSON object", http.StatusBadRequest)
+		http.Error(w, "extraneous data after JSON object", http.StatusBadRequest)
 		return
 	}
 
 	log.Println(paste)
 }
 
-func delete(rw http.ResponseWriter, req *http.Request) {
+func delete(w http.ResponseWriter, req *http.Request) {
 }
 
-func notFound(rw http.ResponseWriter, req *http.Request) {
-	rw.WriteHeader(http.StatusNotFound)
-	rw.Write([]byte(`{"message": "not found"}`))
+func notFound(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
+	w.Write([]byte(`{"message": "not found"}`))
 }

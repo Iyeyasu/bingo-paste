@@ -27,15 +27,17 @@ func (view *view) initialize(uri string, ctx *renderContext) {
 	view.template = view.renderTemplate(uri, ctx)
 }
 
-func (view *view) render(rw http.ResponseWriter, req *http.Request) {
+func (view *view) render(w http.ResponseWriter, req *http.Request) {
 	log.Printf("Render view %s.", view.uri)
+
+	w.Header().Set("Cache-Control", "public, max-age=3600")
 
 	if req.Method != "GET" {
 		log.Printf("Invalid HTTP request method %s for view %s.", req.Method, view.uri)
 	}
 
 	var paste model.Paste
-	err := view.template.Execute(rw, paste)
+	err := view.template.Execute(w, paste)
 	if err != nil {
 		log.Printf("Failed to render view %s.", view.uri)
 	}
