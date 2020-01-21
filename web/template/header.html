@@ -1,0 +1,14 @@
+<div class="navbar">
+    <div class="navbar__left">
+        <a class="navbar__home" href="/">
+            {{ template "icon.html" . }}
+            <div class="navbar__title">{{ .Title }}</div>
+        </a>
+    </div>
+    <div class="navbar__middle"></div>
+    <div class="navbar__right">
+        {{ template "dropdown_syntax.html" . }}
+        {{ template "dropdown_visibility.html" . }}
+        {{ template "dropdown_retention.html" . }}
+    </div>
+</div>

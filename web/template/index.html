@@ -8,9 +8,9 @@
 
 <body>
     <script>{{ .JavaScript }}</script>
-    {{ template "header.html" }}
-    {{ template "editor.html" }}
-    <style>{{ .CSS }}</style>
+    {{ template "header.html" . }}
+    {{ template "editor.html" . }}
+    <style>{{ template "styles.css" }}</style>
 </body>
 
 </html>

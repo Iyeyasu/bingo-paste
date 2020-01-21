@@ -1,0 +1,4 @@
+<div class="editor">
+    <input class="editor__title" type="text" name="title" placeholder="Untitled" {{ if .ReadOnly }}readonly{{ end }}>
+    <textarea class="editor__body" {{ if .ReadOnly }}readonly{{ end }}></textarea>
+</div>

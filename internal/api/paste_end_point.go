@@ -5,18 +5,19 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Iyeyasu/bingo-paste/internal/data"
+	"github.com/Iyeyasu/bingo-paste/internal/model"
 )
 
 // PasteEndPoint represents a REST API endpoint for retrieving pastes.
 type PasteEndPoint struct {
 }
 
-func (end PasteEndPoint) uri(prefix string) string {
-	return prefix + "/paste"
+// Handle sets the end point to handle REST requests to the passed URI.
+func (endPoint *PasteEndPoint) Handle(uri string) {
+	http.HandleFunc(uri, handle)
 }
 
-func (end PasteEndPoint) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func handle(rw http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
 		get(rw, req)
@@ -30,7 +31,7 @@ func (end PasteEndPoint) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func get(rw http.ResponseWriter, req *http.Request) {
-	var paste data.Paste
+	var paste model.Paste
 	encode := json.NewEncoder(rw)
 	encode.Encode(paste)
 }
@@ -39,7 +40,7 @@ func post(rw http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(req.Body)
 	decoder.DisallowUnknownFields()
 
-	var paste data.Paste
+	var paste model.Paste
 	err := decoder.Decode(&paste)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
