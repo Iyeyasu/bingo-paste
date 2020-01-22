@@ -1,7 +1,7 @@
 {{ if .ReadOnly }}
 <div class="editor">
     <input class="editor__title" type="text" name="title" placeholder="Untitled" value="{{ "{{ .Title }}" }}" readonly>
-    <div class="editor__body">{{ "{{ .Content }}" }}</div>
+    <div class="editor__body">{{ "{{ .FormattedContent }}" }}</div>
 </div>
 {{ else }}
 <form id="paste" class="editor" action="/api/v1/paste/" method="POST">

@@ -1,6 +1,11 @@
 package view
 
-import "github.com/alecthomas/chroma/lexers"
+import (
+	"sort"
+	"strings"
+
+	"github.com/alecthomas/chroma/lexers"
+)
 
 type templateRenderContext struct {
 	Title             string // Title shown in the header bar
@@ -10,7 +15,6 @@ type templateRenderContext struct {
 	EncryptionEnabled bool   // Should we enable encryption
 	FixedRetention    bool   // Do all pastes have a fixed retention period?
 	FixedVisibility   bool   // Do all pastes have a fixed visibility (private/public)
-	JavaScript        string
 	Syntaxes          []string
 }
 
@@ -23,7 +27,6 @@ func newTemplateRenderContext() *templateRenderContext {
 	ctx.EncryptionEnabled = false
 	ctx.FixedRetention = false
 	ctx.FixedVisibility = false
-	ctx.JavaScript = ""
 
 	// Retrieve all available syntaxes.
 	syntaxCount := lexers.Registry.Lexers.Len()
@@ -34,6 +37,10 @@ func newTemplateRenderContext() *templateRenderContext {
 			ctx.Syntaxes = append(ctx.Syntaxes, name)
 		}
 	}
+
+	sort.Slice(ctx.Syntaxes, func(i, j int) bool {
+		return strings.ToLower(ctx.Syntaxes[i]) < strings.ToLower(ctx.Syntaxes[j])
+	})
 
 	return ctx
 }

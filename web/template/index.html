@@ -7,10 +7,13 @@
 </head>
 
 <body>
-    <script>{{ .JavaScript }}</script>
     {{ template "header.html" . }}
     {{ template "editor.html" . }}
-    <style>{{ template "styles.css" }}</style>
+    <style>
+    {{ template "styles.css" . }}
+    {{ template "code_light.css" . }}
+    {{ template "code_dark.css" . }}
+    </style>
 </body>
 
 </html>

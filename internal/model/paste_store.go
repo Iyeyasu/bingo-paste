@@ -2,26 +2,22 @@ package model
 
 import (
 	"database/sql"
-	"html"
+	"fmt"
 	"log"
-	"strings"
 	"time"
-
-	"github.com/alecthomas/chroma"
-	htmlf "github.com/alecthomas/chroma/formatters/html"
-	"github.com/alecthomas/chroma/lexers"
-	"github.com/alecthomas/chroma/styles"
 )
 
 // PasteStore is the store for pastes.
 type PasteStore struct {
-	selectStmt *sql.Stmt
-	insertStmt *sql.Stmt
+	selectStmt        *sql.Stmt
+	insertStmt        *sql.Stmt
+	deleteStmt        *sql.Stmt
+	deleteExpiredStmt *sql.Stmt
 }
 
 // NewStore creates a new PasteStore instance.
 func NewStore(db *sql.DB) *PasteStore {
-	log.Println("New paste store")
+	log.Println("Initializing paste store")
 
 	createPseudoEncrypt(db)
 	createTable(db)
@@ -29,79 +25,149 @@ func NewStore(db *sql.DB) *PasteStore {
 	store := new(PasteStore)
 	store.selectStmt = getSelectStatement(db)
 	store.insertStmt = getInsertStatement(db)
+	store.deleteStmt = getDeleteStatement(db)
+	store.deleteExpiredStmt = getDeleteExpiredStatement(db)
+
+	go store.monitorExpired()
+
 	return store
 }
 
 // Insert inserts a new paste to the database.
 func (store *PasteStore) Insert(paste *Paste) (int64, error) {
-	log.Println("INSERT paste")
+	log.Println("Inserting new paste")
 
-	var id int64
-	paste.Content = highlightSyntax(paste)
+	id := int64(0)
 	err := store.insertStmt.QueryRow(
 		paste.Title,
-		paste.Content,
+		paste.RawContent,
+		paste.FormattedContent,
 		paste.IsPublic,
 		time.Now().Unix(),
 		paste.LifetimeSeconds,
 		paste.Syntax).Scan(&id)
 
 	if err != nil {
+		log.Printf("Failed to create paste: %s", err)
 		return 0, err
 	}
 
 	return id, nil
 }
 
-// Select returns the paste from the database with the given id.
+// Select returns the paste with the given id from the database.
 func (store *PasteStore) Select(id int64) (*Paste, error) {
-	log.Printf("SELECT paste %d", id)
+	log.Printf("Retrieving paste %d", id)
 
 	paste := NewPaste()
 	err := store.selectStmt.QueryRow(id).Scan(
 		&paste.ID,
 		&paste.Title,
-		&paste.Content,
+		&paste.RawContent,
+		&paste.FormattedContent,
 		&paste.IsPublic,
 		&paste.TimeCreatedSeconds,
 		&paste.LifetimeSeconds,
 		&paste.Syntax)
 
 	if err != nil {
+		log.Printf("Failed to retrieve paste %d: %s", id, err)
 		return nil, err
 	}
 
+	return store.filterExpired(paste)
+}
+
+// Delete deletes the paste with the given id from the database.
+func (store *PasteStore) Delete(id int64) error {
+	log.Printf("Deleting paste %d", id)
+
+	_, err := store.deleteStmt.Exec(id)
+	if err != nil {
+		log.Printf("Failed to delete paste %d: %s", id, err)
+	}
+
+	return err
+}
+
+func (store *PasteStore) monitorExpired() {
+	log.Printf("Monitoring expired pastes")
+
+	store.deleteExpired()
+	for range time.Tick(time.Hour) {
+		store.deleteExpired()
+	}
+}
+
+func (store *PasteStore) deleteExpired() {
+	result, err := store.deleteExpiredStmt.Exec(time.Now().Unix())
+	if err != nil {
+		log.Printf("Failed to delete expired pastes: %s", err)
+		return
+	}
+
+	count, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Failed to count expired pastes: %s", err)
+		return
+	}
+
+	log.Printf("Deleted %d expired pastes", count)
+}
+
+func (store *PasteStore) filterExpired(paste *Paste) (*Paste, error) {
+	log.Printf("Checking if paste %d with life time %d has expired", paste.ID, paste.LifetimeSeconds)
+
+	timeLeft := paste.TimeCreatedSeconds + paste.LifetimeSeconds - time.Now().Unix()
+	if timeLeft > 0 {
+		log.Printf("Paste %d has not expired (%d seconds left)", paste.ID, timeLeft)
+		return paste, nil
+	}
+
+	err := store.Delete(paste.ID)
+	if err != nil {
+		log.Printf("Failed to delete expired paste %d: %s", paste.ID, err)
+		return nil, err
+	}
+
+	if paste.LifetimeSeconds > 0 {
+		log.Printf("Paste %d has expired", paste.ID)
+		return nil, fmt.Errorf("paste %d expired", paste.ID)
+	}
+
+	log.Printf("Paste %d burned on read", paste.ID)
 	return paste, nil
 }
 
 func createTable(db *sql.DB) {
-	log.Printf("Creating table")
+	log.Printf("Creating table 'pastes'")
 
 	q := "CREATE SEQUENCE IF NOT EXISTS pastes_id_seq AS bigint"
 	_, err := db.Exec(q)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Failed to create table: %s", err)
 	}
 
 	q = `
 	CREATE TABLE IF NOT EXISTS pastes (
 		id bigint PRIMARY KEY DEFAULT pseudo_encrypt(nextval('pastes_id_seq')),
 		title text NOT NULL,
-		content text NOT NULL,
-		syntax text NOT NULL,
+		raw_content text NOT NULL,
+		formatted_content text NOT NULL,
+		language text NOT NULL,
 		is_public bool,
 		time_created_seconds bigint,
 		lifetime_seconds bigint)
 	`
 	_, err = db.Exec(q)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Failed to create table: %s", err)
 	}
 
 	q = "ALTER SEQUENCE pastes_id_seq OWNED BY pastes.id"
 	_, err = db.Exec(q)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Failed to create table: %s", err)
 	}
 }
 
@@ -135,82 +201,50 @@ func createPseudoEncrypt(db *sql.DB) {
 	`
 	_, err := db.Exec(q)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("Failed to create function: %s", err)
 	}
 }
 
 func getInsertStatement(db *sql.DB) *sql.Stmt {
-	log.Printf("Getting prepared insert statement")
+	log.Printf("Getting prepared insert statement for pastes")
 
-	query := "INSERT INTO pastes (title, content, is_public, time_created_seconds, lifetime_seconds, syntax) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+	query := "INSERT INTO pastes (title, raw_content, formatted_content, is_public, time_created_seconds, lifetime_seconds, language) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
 	stmt, err := db.Prepare(query)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to get statement: %s", err)
 	}
 	return stmt
 }
 
 func getSelectStatement(db *sql.DB) *sql.Stmt {
-	log.Printf("Getting prepared select statement")
+	log.Printf("Getting prepared select statement for pastes")
 
-	query := "SELECT id, title, content, is_public, time_created_seconds, lifetime_seconds, syntax FROM pastes WHERE id = $1"
+	query := "SELECT id, title, raw_content, formatted_content, is_public, time_created_seconds, lifetime_seconds, language FROM pastes WHERE id = $1"
 	stmt, err := db.Prepare(query)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to get statement: %s", err)
 	}
 	return stmt
 }
 
-func highlightSyntax(paste *Paste) string {
-	log.Printf("Highlighting syntax for paste %d", paste.ID)
+func getDeleteStatement(db *sql.DB) *sql.Stmt {
+	log.Printf("Getting prepared delete statement for pastes")
 
-	if paste.Syntax == "" || paste.Syntax == "plaintext" {
-		return html.EscapeString(paste.Content)
-	}
-
-	var lexer chroma.Lexer
-	if paste.Syntax == "auto" {
-		log.Printf("Analyzing syntax")
-		lexer = lexers.Analyse(paste.Content)
-	} else {
-		log.Printf("Getting lexer")
-		lexer = lexers.Get(paste.Syntax)
-	}
-
-	if lexer == nil {
-		log.Printf("Failed to get lexer")
-		return html.EscapeString(paste.Content)
-	}
-
-	log.Printf("Using lexer %s", lexer.Config().Name)
-	lexer = chroma.Coalesce(lexer)
-
-	formatter := htmlf.New(htmlf.Standalone(false), htmlf.WithLineNumbers(true))
-	if formatter == nil {
-		log.Printf("Failed to get html formatter")
-		return html.EscapeString(paste.Content)
-	}
-
-	styleName := "swapoff"
-	style := styles.Get(styleName)
-	log.Printf("Using style %s", styleName)
-	if style == nil {
-		log.Printf("Failed to find style %s", styleName)
-		style = styles.Fallback
-	}
-
-	iterator, err := lexer.Tokenise(nil, paste.Content)
+	stmt, err := db.Prepare("DELETE FROM pastes WHERE id = $1")
 	if err != nil {
-		log.Println(err)
-		return html.EscapeString(paste.Content)
+		log.Fatalf("Failed to get statement: %s", err)
 	}
 
-	var builder strings.Builder
-	err = formatter.Format(&builder, style, iterator)
+	return stmt
+}
+
+func getDeleteExpiredStatement(db *sql.DB) *sql.Stmt {
+	log.Printf("Getting prepared delete expired statement for pastes")
+
+	stmt, err := db.Prepare("DELETE FROM pastes WHERE lifetime_seconds + time_created_seconds < $1")
 	if err != nil {
-		log.Println(err)
-		return html.EscapeString(paste.Content)
+		log.Fatalf("Failed to get statement: %s", err)
 	}
 
-	return builder.String()
+	return stmt
 }

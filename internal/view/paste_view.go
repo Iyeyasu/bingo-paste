@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -48,13 +49,13 @@ func (view *PasteView) Handle(url string) {
 func (view *PasteView) render(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	id := params.ByName("id")
 	if id != "" {
-		view.renderViewer(w, id)
+		view.renderViewer(w, req, id)
 	} else {
 		view.renderEditor(w)
 	}
 }
 
-func (view *PasteView) renderViewer(w http.ResponseWriter, idStr string) {
+func (view *PasteView) renderViewer(w http.ResponseWriter, req *http.Request, idStr string) {
 	log.Printf("Rendering viewer '%s'.", view.name)
 
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -69,11 +70,16 @@ func (view *PasteView) renderViewer(w http.ResponseWriter, idStr string) {
 		return
 	}
 
-	ctx := newPasteRenderContext(paste)
-	err = view.viewerTemplate.Execute(w, ctx)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	if path.Base(req.URL.Path) == "raw" {
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte(paste.RawContent))
+	} else {
+		ctx := newPasteRenderContext(paste)
+		err = view.viewerTemplate.Execute(w, ctx)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 }
 

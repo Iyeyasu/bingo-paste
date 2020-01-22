@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/Iyeyasu/bingo-paste/internal/model"
+	"github.com/Iyeyasu/bingo-paste/internal/view"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -30,14 +31,20 @@ func NewPasteEndPoint(router *httprouter.Router, store *model.PasteStore) *Paste
 
 // Handle sets the URI for the end point.
 func (endPoint *PasteEndPoint) Handle(uri string) {
-	endPoint.router.GET(uri, endPoint.get)
+	endPoint.router.GET(uri+":id", endPoint.get)
 	endPoint.router.POST(uri, endPoint.post)
 }
 
-func (endPoint *PasteEndPoint) get(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func (endPoint *PasteEndPoint) get(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	log.Printf("Retrieving paste...")
 
-	id := int64(0)
+	idStr := params.ByName("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	paste, err := endPoint.store.Select(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -68,6 +75,8 @@ func (endPoint *PasteEndPoint) post(w http.ResponseWriter, req *http.Request, _ 
 	default:
 		err = fmt.Errorf("unrecognized Content-Type '%s'", mime)
 	}
+
+	paste.FormattedContent = view.HighlightPaste(paste)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -113,25 +122,17 @@ func decodeURL(req *http.Request) (*model.Paste, error) {
 		return nil, err
 	}
 
-	lifetime, err := strconv.ParseInt(decoded.Get("retention"), 10, 64)
+	lifetimeMinutes, err := strconv.ParseInt(decoded.Get("retention"), 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
 	paste := model.Paste{
 		Title:           decoded.Get("title"),
-		Content:         decoded.Get("content"),
+		RawContent:      decoded.Get("content"),
 		IsPublic:        decoded.Get("visibility") == "public",
-		LifetimeSeconds: int64(lifetime),
+		LifetimeSeconds: int64(lifetimeMinutes) * 60,
 		Syntax:          decoded.Get("syntax"),
 	}
 	return &paste, nil
 }
-
-// func decodeID(req *http.Request) {
-// 	re, _ := regexp.Compile("/id/(.*)")
-// 	values := re.FindStringSubmatch(req.)
-// 	if len(values) < 2 {
-
-// 	}
-// }

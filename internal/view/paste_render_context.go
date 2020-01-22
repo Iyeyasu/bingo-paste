@@ -7,13 +7,15 @@ import (
 )
 
 type pasteRenderContext struct {
-	Title   string
-	Content template.HTML
+	Title            string
+	RawContent       string
+	FormattedContent template.HTML
 }
 
 func newPasteRenderContext(paste *model.Paste) *pasteRenderContext {
 	ctx := new(pasteRenderContext)
 	ctx.Title = paste.Title
-	ctx.Content = template.HTML(paste.Content)
+	ctx.RawContent = paste.RawContent
+	ctx.FormattedContent = template.HTML(paste.FormattedContent)
 	return ctx
 }

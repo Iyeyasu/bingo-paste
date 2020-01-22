@@ -22,6 +22,7 @@ func main() {
 	pasteView := view.NewPasteView(router, pasteStore)
 	pasteView.Handle("/")
 	pasteView.Handle("/view/:id")
+	pasteView.Handle("/view/:id/raw")
 
 	pasteEndPoint := api.NewPasteEndPoint(router, pasteStore)
 	pasteEndPoint.Handle("/api/v1/paste/")

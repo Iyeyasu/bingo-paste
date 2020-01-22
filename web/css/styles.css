@@ -108,6 +108,7 @@ body {
   align-items: center;
   padding: 0.5em;
   text-decoration: none;
+  outline: none;
 }
 
 .navbar__icon {
@@ -158,6 +159,13 @@ body {
   color: var(--fg-editor);
   background-color: var(--bg-editor);
   box-sizing: border-box;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.editor__body > pre {
+  margin: 0;
+  padding: 0;
 }
 
 .options__dropdown,
@@ -170,7 +178,7 @@ body {
   border: none;
   border-radius: 2px;
   overflow: hidden;
-  box-shadow: 0.2em 0.2em #0003;
+  box-shadow: 0.2em 0.2em #0005;
 }
 
 .options__searchbar {
@@ -184,15 +192,15 @@ body {
   width: 4em;
   height: 4em;
   border-radius: 4em;
-  bottom: 1em;
-  right: 1em;
+  bottom: 1.5em;
+  right: 1.5em;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-create);
   -webkit-transition: all 0.1s ease-in-out;
   -moz-transition: all 0.1s ease-in-out;
   transition: all 0.1s ease-in-out;
-  box-shadow: 0.1em 0.15em #0008;
+  box-shadow: 0.1em 0.15em #0005;
   background-color: var(--bg-create);
 }
 
