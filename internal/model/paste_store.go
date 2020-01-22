@@ -2,8 +2,15 @@ package model
 
 import (
 	"database/sql"
+	"html"
 	"log"
+	"strings"
 	"time"
+
+	"github.com/alecthomas/chroma"
+	htmlf "github.com/alecthomas/chroma/formatters/html"
+	"github.com/alecthomas/chroma/lexers"
+	"github.com/alecthomas/chroma/styles"
 )
 
 // PasteStore is the store for pastes.
@@ -27,15 +34,17 @@ func NewStore(db *sql.DB) *PasteStore {
 
 // Insert inserts a new paste to the database.
 func (store *PasteStore) Insert(paste *Paste) (int64, error) {
-	log.Printf("INSERT paste %+v", paste)
+	log.Println("INSERT paste")
 
 	var id int64
+	paste.Content = highlightSyntax(paste)
 	err := store.insertStmt.QueryRow(
 		paste.Title,
 		paste.Content,
 		paste.IsPublic,
 		time.Now().Unix(),
-		paste.LifetimeSeconds).Scan(&id)
+		paste.LifetimeSeconds,
+		paste.Syntax).Scan(&id)
 
 	if err != nil {
 		return 0, err
@@ -55,7 +64,8 @@ func (store *PasteStore) Select(id int64) (*Paste, error) {
 		&paste.Content,
 		&paste.IsPublic,
 		&paste.TimeCreatedSeconds,
-		&paste.LifetimeSeconds)
+		&paste.LifetimeSeconds,
+		&paste.Syntax)
 
 	if err != nil {
 		return nil, err
@@ -78,6 +88,7 @@ func createTable(db *sql.DB) {
 		id bigint PRIMARY KEY DEFAULT pseudo_encrypt(nextval('pastes_id_seq')),
 		title text NOT NULL,
 		content text NOT NULL,
+		syntax text NOT NULL,
 		is_public bool,
 		time_created_seconds bigint,
 		lifetime_seconds bigint)
@@ -131,7 +142,7 @@ func createPseudoEncrypt(db *sql.DB) {
 func getInsertStatement(db *sql.DB) *sql.Stmt {
 	log.Printf("Getting prepared insert statement")
 
-	query := "INSERT INTO pastes (title, content, is_public, time_created_seconds, lifetime_seconds) VALUES ($1, $2, $3, $4, $5) RETURNING id"
+	query := "INSERT INTO pastes (title, content, is_public, time_created_seconds, lifetime_seconds, syntax) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		log.Fatal(err)
@@ -142,10 +153,64 @@ func getInsertStatement(db *sql.DB) *sql.Stmt {
 func getSelectStatement(db *sql.DB) *sql.Stmt {
 	log.Printf("Getting prepared select statement")
 
-	query := "SELECT id, title, content, is_public, time_created_seconds, lifetime_seconds FROM pastes WHERE id = $1"
+	query := "SELECT id, title, content, is_public, time_created_seconds, lifetime_seconds, syntax FROM pastes WHERE id = $1"
 	stmt, err := db.Prepare(query)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return stmt
+}
+
+func highlightSyntax(paste *Paste) string {
+	log.Printf("Highlighting syntax for paste %d", paste.ID)
+
+	if paste.Syntax == "" || paste.Syntax == "plaintext" {
+		return html.EscapeString(paste.Content)
+	}
+
+	var lexer chroma.Lexer
+	if paste.Syntax == "auto" {
+		log.Printf("Analyzing syntax")
+		lexer = lexers.Analyse(paste.Content)
+	} else {
+		log.Printf("Getting lexer")
+		lexer = lexers.Get(paste.Syntax)
+	}
+
+	if lexer == nil {
+		log.Printf("Failed to get lexer")
+		return html.EscapeString(paste.Content)
+	}
+
+	log.Printf("Using lexer %s", lexer.Config().Name)
+	lexer = chroma.Coalesce(lexer)
+
+	formatter := htmlf.New(htmlf.Standalone(false), htmlf.WithLineNumbers(true))
+	if formatter == nil {
+		log.Printf("Failed to get html formatter")
+		return html.EscapeString(paste.Content)
+	}
+
+	styleName := "swapoff"
+	style := styles.Get(styleName)
+	log.Printf("Using style %s", styleName)
+	if style == nil {
+		log.Printf("Failed to find style %s", styleName)
+		style = styles.Fallback
+	}
+
+	iterator, err := lexer.Tokenise(nil, paste.Content)
+	if err != nil {
+		log.Println(err)
+		return html.EscapeString(paste.Content)
+	}
+
+	var builder strings.Builder
+	err = formatter.Format(&builder, style, iterator)
+	if err != nil {
+		log.Println(err)
+		return html.EscapeString(paste.Content)
+	}
+
+	return builder.String()
 }

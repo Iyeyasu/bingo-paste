@@ -6,10 +6,11 @@
         </path>
     </svg>
     <select form="paste" name="syntax">
-        <option value="auto" selected="selected">Plain Text</option>
-        <option value="cplusplus">C++</option>
-        <option value="c">C</option>
-        <option value="csharp">C#</option>
+        <option value="auto" selected="selected">Auto</option>
+        <option value="plaintext">Plain Text</option>
+        {{ range .Syntaxes }}
+        <option value="{{ . }}">{{ . }}</option>
+        {{ end }}
     </select>
     <svg class="options__dropdown__icon options__dropdown__icon--arrow" viewBox="0 0 10 16" version="1.1">
         <path fill-rule="evenodd" d="M5 11L0 6l1.5-1.5L5 8.25 8.5 4.5 10 6l-5 5z"></path>

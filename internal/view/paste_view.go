@@ -1,12 +1,12 @@
 package view
 
 import (
-	"bytes"
 	"html/template"
 	"log"
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/Iyeyasu/bingo-paste/internal/model"
 	"github.com/julienschmidt/httprouter"
@@ -69,7 +69,8 @@ func (view *PasteView) renderViewer(w http.ResponseWriter, idStr string) {
 		return
 	}
 
-	err = view.viewerTemplate.Execute(w, paste)
+	ctx := newPasteRenderContext(paste)
+	err = view.viewerTemplate.Execute(w, ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -85,14 +86,14 @@ func (view *PasteView) renderEditor(w http.ResponseWriter) {
 func (view *PasteView) renderTemplate(readOnly bool) string {
 	log.Printf("Rendering view template '%s'.", view.name)
 
-	ctx := newRenderContext()
+	ctx := newTemplateRenderContext()
 	ctx.ReadOnly = readOnly
 
-	var buf bytes.Buffer
+	var builder strings.Builder
 	tmpl := template.Must(template.ParseGlob("web/template/*.html"))
 	tmpl = template.Must(tmpl.ParseGlob("web/css/*.css"))
-	tmpl.ExecuteTemplate(&buf, "index.html", ctx)
-	tmplMini := view.minifyTemplate(buf.String())
+	tmpl.ExecuteTemplate(&builder, "index.html", ctx)
+	tmplMini := view.minifyTemplate(builder.String())
 	return tmplMini
 }
 
