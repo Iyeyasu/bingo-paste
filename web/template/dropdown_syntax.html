@@ -1,17 +1,17 @@
 {{ if and (not .ReadOnly) (not .EncryptionEnabled) }}
 <div class="options__dropdown">
-    <svg class="options__dropdown__icon options__dropdown__icon--right" viewBox="0 0 14 16">
+    <svg class="options__dropdown__icon options__dropdown__icon--right" viewBox="0 0 14 16" version="1.1">
         <path fill-rule="evenodd"
             d="M9.5 3L8 4.5 11.5 8 8 11.5 9.5 13 14 8 9.5 3zm-5 0L0 8l4.5 5L6 11.5 2.5 8 6 4.5 4.5 3z">
         </path>
     </svg>
-    <select>
+    <select form="paste" name="syntax">
         <option value="auto" selected="selected">Plain Text</option>
         <option value="cplusplus">C++</option>
         <option value="c">C</option>
         <option value="csharp">C#</option>
     </select>
-    <svg class="options__dropdown__icon options__dropdown__icon--arrow" viewBox="0 0 10 16">
+    <svg class="options__dropdown__icon options__dropdown__icon--arrow" viewBox="0 0 10 16" version="1.1">
         <path fill-rule="evenodd" d="M5 11L0 6l1.5-1.5L5 8.25 8.5 4.5 10 6l-5 5z"></path>
     </svg>
 </div>
