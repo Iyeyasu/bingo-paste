@@ -1,10 +1,6 @@
-{{ if .ReadOnly }}
-<div class="editor">
-    <input class="editor__title" type="text" name="title" placeholder="Untitled" value="{{ "{{ .Title }}" }}" readonly>
-    <div class="editor__body">{{ "{{ .FormattedContent }}" }}</div>
-</div>
-{{ else }}
-<form id="paste" class="editor" action="/api/v1/paste/" method="POST">
+{{ define "content" }}
+
+<form id="paste" class="content editor" action="/api/v1/paste/" method="POST">
     <input class="editor__title" type="text" name="title" placeholder="Untitled">
     <textarea name="content" class="editor__body" pattern=".*\S+.*" title="Paste content required" required></textarea>
     <button class="editor__button editor__button--create">
@@ -15,4 +11,5 @@
         </svg>
     </button>
 </form>
+
 {{ end }}

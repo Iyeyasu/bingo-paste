@@ -1,0 +1,24 @@
+{{ define "index" }}
+
+<html lang="en" data-theme="{{ .Config.Appearance.Theme }}">
+
+<head>
+    <meta charset="utf-8">
+    <title>{{ .Config.Appearance.Title }}</title>
+    <meta name="description" content="{{ .Config.Appearance.Title }}">
+</head>
+
+<body>
+    {{ template "navbar" . }}
+    {{ template "content" . }}
+
+    {{ block "style" . }}
+    <style>
+        {{ template "styles.css". }}
+    </style>
+    {{ end }}
+</body>
+
+</html>
+
+{{ end }}

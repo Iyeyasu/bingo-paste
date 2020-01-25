@@ -1,7 +1,9 @@
-view:
-  name: "BINGO"
-  icon: /path/to/icon.svg
-  css: /path/to/style.css
+log_level: debug
+
+appearance:
+  title: "Bingo"
+  theme: "dark"
+  #icon: /path/to/icon.svg
 
 db:
   driver: postgres
@@ -11,3 +13,28 @@ db:
   username: bingo
   password: bingo
   ssl: disable
+
+redis:
+  host: redis
+  port: 1111
+  password: 1111
+
+extensions:
+  visibility:
+    enabled: true
+
+  expiry:
+    enabled: true
+    durations:
+      - 0
+      - 5
+      - 60
+      - 1440
+
+  highlight:
+    enabled: true
+    languages: base #base/all/custom
+    custom_languages:
+      - "Go"
+      - "Python3"
+      - "HTML"

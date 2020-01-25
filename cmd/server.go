@@ -1,33 +1,32 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/Iyeyasu/bingo-paste/internal/api"
 	"github.com/Iyeyasu/bingo-paste/internal/model"
 	"github.com/Iyeyasu/bingo-paste/internal/view"
 	"github.com/julienschmidt/httprouter"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	db, err := model.OpenDB()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
+	// log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+	database := model.NewDatabase()
 	router := httprouter.New()
-	pasteStore := model.NewStore(db)
-
-	pasteView := view.NewPasteView(router, pasteStore)
-	pasteView.Handle("/")
-	pasteView.Handle("/view/:id")
-	pasteView.Handle("/view/:id/raw")
-
-	pasteEndPoint := api.NewPasteEndPoint(router, pasteStore)
-	pasteEndPoint.Handle("/api/v1/paste/")
+	pasteView := view.NewPasteView(database.Pastes)
+	errorView := view.NewErrorView()
 
 	router.GET("/favicon.ico", faviconHandler)
+	router.GET("/", pasteView.ServeEditor)
+	router.GET("/view/:id", pasteView.ServePaste)
+	router.GET("/view/:id/raw", pasteView.ServeRawPaste)
+	router.NotFound = errorView
+
+	pasteEndPoint := api.NewPasteEndPoint(router, database.Pastes)
+	pasteEndPoint.Handle("/api/v1/paste/")
+
 	log.Fatal(http.ListenAndServe(":80", router))
 }
 

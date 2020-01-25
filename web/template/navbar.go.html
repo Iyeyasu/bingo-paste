@@ -1,0 +1,29 @@
+{{ define "navbar" }}
+
+<div class="navbar">
+    {{ block "navbar_left" . }}
+        <div class="navbar__left">
+            <a class="navbar__home" href="/">
+                <svg class="navbar__icon" version="1.1" viewBox="0 0 16.933 16.933">
+                    <g transform="matrix(.084667 0 0 .084667 30.337 -4.9395)">
+                        <circle cx="-258.31" cy="158.34" r="98.75" style="fill:#f4443e" />
+                        <ellipse cx="-259.44" cy="158.72" rx="70" ry="70"
+                            style="fill:none;stroke-width:14.173;stroke:#f7f7f7" />
+                        <path d="m-190.43 155.14h-67.647v28.145" style="fill:none;stroke-width:14.173;stroke:#f7f7f7" />
+                    </g>
+                </svg>
+                <div class="navbar__title">{{ .Config.Appearance.Title }}</div>
+            </a>
+        </div>
+    {{ end }}
+
+    {{ block "navbar_middle" . }}
+        <div class="navbar__middle"></div>
+    {{ end }}
+
+    {{ block "navbar_right" . }}
+        <div class="navbar__right"> </div>
+    {{ end }}
+</div>
+
+{{ end }}

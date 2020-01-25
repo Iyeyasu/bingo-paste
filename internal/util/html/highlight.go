@@ -1,44 +1,42 @@
-package view
+package util
 
 import (
 	"html"
-	"log"
 	"strings"
 
-	"github.com/Iyeyasu/bingo-paste/internal/model"
 	"github.com/alecthomas/chroma"
 	htmlf "github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
+	log "github.com/sirupsen/logrus"
 )
 
-// HighlightPaste applies syntax highlighting to the given paste.
-func HighlightPaste(paste *model.Paste) string {
-	log.Printf("Highlighting syntax for paste %d", paste.ID)
+// HighlightSyntax applies syntax highlighting to the given string.
+func HighlightSyntax(lang string, content string) string {
+	log.Debugf("Highlighting syntax using language %s", lang)
 
-	lexer := getLexer(paste.Syntax)
+	lexer := getLexer(lang)
 	style := getStyle("swapoff")
 	formatter := getFormatter()
 
-	it, err := lexer.Tokenise(nil, paste.RawContent)
+	it, err := lexer.Tokenise(nil, content)
 	builder := new(strings.Builder)
 	err = formatter.Format(builder, style, it)
 
 	if err != nil {
-		log.Println(err)
-		return html.EscapeString(paste.RawContent)
+		log.Errorf("Failed to highlight syntax: %s", err.Error())
+		return html.EscapeString(content)
 	}
 
 	return builder.String()
 }
 
 func getLexer(lang string) chroma.Lexer {
-	log.Printf("Using %s lexer", lang)
+	log.Debugf("Using lexer '%s'", lang)
 
-	var lexer chroma.Lexer
-	lexer = lexers.Get(lang)
+	lexer := lexers.Get(lang)
 	if lexer == nil {
-		log.Printf("Failed to get lexer %s", lang)
+		log.Warnf("Failed to get lexer %s. Falling back to default", lang)
 		return lexers.Fallback
 	}
 
@@ -47,7 +45,7 @@ func getLexer(lang string) chroma.Lexer {
 }
 
 func getFormatter() *htmlf.Formatter {
-	log.Printf("Using html formatter")
+	log.Debugf("Using html formatter")
 
 	return htmlf.New(
 		htmlf.Standalone(false),
@@ -56,12 +54,12 @@ func getFormatter() *htmlf.Formatter {
 }
 
 func getStyle(name string) *chroma.Style {
-	log.Printf("Using style %s", name)
+	log.Debugf("Using style '%s'", name)
 
 	style := styles.Get(name)
 	if style == nil {
-		log.Printf("Failed to find style %s", name)
-		style = styles.Fallback
+		log.Warnf("Failed to find style %s. Falling back to default", name)
+		return styles.Fallback
 	}
 
 	return style

@@ -5,14 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/Iyeyasu/bingo-paste/internal/model"
-	"github.com/Iyeyasu/bingo-paste/internal/view"
+	"github.com/Iyeyasu/bingo-paste/internal/util/http"
 	"github.com/julienschmidt/httprouter"
+	log "github.com/sirupsen/logrus"
 )
 
 // PasteEndPoint represents a REST API endpoint for retrieving pastes.
@@ -36,65 +37,65 @@ func (endPoint *PasteEndPoint) Handle(uri string) {
 }
 
 func (endPoint *PasteEndPoint) get(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	log.Printf("Retrieving paste...")
+	log.Debugf("GET paste request to %s", req.URL)
 
-	idStr := params.ByName("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := util.ParseID(params)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		util.WriteError(w, fmt.Sprintf("Failed to GET paste from %s: %s", req.URL, err))
 		return
 	}
 
 	paste, err := endPoint.store.Select(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		util.WriteError(w, fmt.Sprintf("Failed to GET paste %d from %s: %s", id, req.URL, err))
 		return
 	}
 
-	encode := json.NewEncoder(w)
-	err = encode.Encode(paste)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	log.Printf("Paste retrieved.")
+	log.Infof("GET paste %d from %s", req.URL)
+	util.WriteJSON(w, paste)
 }
 
 func (endPoint *PasteEndPoint) post(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	log.Printf("Creating paste...")
+	log.Debugf("POST paste request to %s", req.URL)
 
-	mime := req.Header.Get("Content-Type")
-	log.Printf("Decoding request (Content-Type: %s)...", mime)
-
-	var err error
-	var paste *model.Paste
-	switch mime {
-	case "application/x-www-form-urlencoded":
-		paste, err = decodeURL(req)
-	default:
-		err = fmt.Errorf("unrecognized Content-Type '%s'", mime)
-	}
-
-	paste.FormattedContent = view.HighlightPaste(paste)
-
+	paste, err := parsePaste(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		util.WriteError(w, fmt.Sprintf("Failed to POST paste to %s: %s", req.URL, err))
 		return
 	}
 
 	id, err := endPoint.store.Insert(paste)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		util.WriteError(w, fmt.Sprintf("Failed to POST paste to %s: %s", req.URL, err))
 		return
 	}
 
-	url := fmt.Sprintf("/view/%d", id)
-	log.Printf("Paste created. Redirecting to %s", url)
-	http.Redirect(w, req, url, 303)
+	log.Infof("POST paste %d to %s", id, req.URL)
+	util.Redirect(w, req, fmt.Sprintf("/view/%d", id), 303)
+}
+
+func parsePaste(req *http.Request) (*model.Paste, error) {
+	log.Debug("Parsing POST paste request")
+
+	mime := req.Header.Get("Content-Type")
+	if mime == "" {
+		return nil, errors.New("no Content-Type detected")
+	}
+
+	log.Debugf("Content-Type detected: %s", mime)
+	switch mime {
+	case "application/x-www-form-urlencoded":
+		return decodeURL(req)
+	case "application/json":
+		return decodeJSON(req)
+	default:
+		return nil, fmt.Errorf("unrecognized Content-Type '%s'", mime)
+	}
 }
 
 func decodeJSON(req *http.Request) (*model.Paste, error) {
+	log.Debug("Parsing paste JSON data")
+
 	decoder := json.NewDecoder(req.Body)
 	decoder.DisallowUnknownFields()
 
@@ -112,6 +113,8 @@ func decodeJSON(req *http.Request) (*model.Paste, error) {
 }
 
 func decodeURL(req *http.Request) (*model.Paste, error) {
+	log.Debug("Parsing paste URL encoded data")
+
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return nil, err
@@ -122,17 +125,17 @@ func decodeURL(req *http.Request) (*model.Paste, error) {
 		return nil, err
 	}
 
-	lifetimeMinutes, err := strconv.ParseInt(decoded.Get("retention"), 10, 64)
+	duration, err := strconv.ParseInt(decoded.Get("expiry"), 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
 	paste := model.Paste{
-		Title:           decoded.Get("title"),
-		RawContent:      decoded.Get("content"),
-		IsPublic:        decoded.Get("visibility") == "public",
-		LifetimeSeconds: int64(lifetimeMinutes) * 60,
-		Syntax:          decoded.Get("syntax"),
+		Title:      decoded.Get("title"),
+		RawContent: decoded.Get("content"),
+		IsPublic:   decoded.Get("visibility") == "public",
+		Duration:   time.Duration(duration),
+		Language:   decoded.Get("language"),
 	}
 	return &paste, nil
 }

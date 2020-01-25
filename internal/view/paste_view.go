@@ -1,122 +1,66 @@
 package view
 
 import (
+	"fmt"
 	"html/template"
-	"log"
 	"net/http"
-	"path"
-	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/Iyeyasu/bingo-paste/internal/model"
+	http_util "github.com/Iyeyasu/bingo-paste/internal/util/http"
+	template_util "github.com/Iyeyasu/bingo-paste/internal/util/template"
 	"github.com/julienschmidt/httprouter"
-	"github.com/tdewolff/minify/v2"
-	"github.com/tdewolff/minify/v2/css"
-	"github.com/tdewolff/minify/v2/html"
-	"github.com/tdewolff/minify/v2/js"
-	"github.com/tdewolff/minify/v2/svg"
 )
 
-// PasteView is the main view for editing and viewing pastes.
+var (
+	editorTemplate = "editor.html"
+	viewerTemplate = "viewer.html"
+)
+
+// PasteView .
 type PasteView struct {
-	name           string
-	router         *httprouter.Router
 	store          *model.PasteStore
-	editorTemplate []byte
+	editorHTML     []byte
 	viewerTemplate *template.Template
 }
 
-// NewPasteView creates a new view for pastes.
-func NewPasteView(router *httprouter.Router, store *model.PasteStore) *PasteView {
-	log.Printf("Creating Paste view")
-
+// NewPasteView .
+func NewPasteView(store *model.PasteStore) *PasteView {
+	ctx := template_util.NewTemplateContext()
 	view := new(PasteView)
-	view.name = "Paste view"
-	view.router = router
 	view.store = store
-	view.editorTemplate = []byte(view.renderTemplate(false))
-	view.viewerTemplate = template.Must(template.New("").Parse(view.renderTemplate(true)))
-
+	view.editorHTML = []byte(template_util.RenderTemplate("editor", ctx))
+	view.viewerTemplate = template_util.PrerenderTemplate("viewer", ctx)
 	return view
 }
 
-// Handle sets up the HTTP request handling for the given URL.
-func (view *PasteView) Handle(url string) {
-	view.router.GET(url, view.render)
+// ServeEditor .
+func (view *PasteView) ServeEditor(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	http_util.WriteHTML(w, view.editorHTML)
 }
 
-func (view *PasteView) render(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	id := params.ByName("id")
-	if id != "" {
-		view.renderViewer(w, req, id)
+// ServePaste .
+func (view *PasteView) ServePaste(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	if paste, err := view.getPaste(params); err == nil {
+		http_util.WriteTemplate(w, view.viewerTemplate, paste)
 	} else {
-		view.renderEditor(w)
+		http_util.WriteError(w, fmt.Sprintf("Failed to retrieve paste: %s", err.Error()))
 	}
 }
 
-func (view *PasteView) renderViewer(w http.ResponseWriter, req *http.Request, idStr string) {
-	log.Printf("Rendering viewer '%s'.", view.name)
-
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	paste, err := view.store.Select(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if path.Base(req.URL.Path) == "raw" {
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(paste.RawContent))
+// ServeRawPaste .
+func (view *PasteView) ServeRawPaste(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	if paste, err := view.getPaste(params); err == nil {
+		http_util.WriteText(w, []byte(paste.RawContent))
 	} else {
-		ctx := newPasteRenderContext(paste)
-		err = view.viewerTemplate.Execute(w, ctx)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+		http_util.WriteError(w, fmt.Sprintf("Failed to retrieve paste: %s", err.Error()))
 	}
 }
 
-func (view *PasteView) renderEditor(w http.ResponseWriter) {
-	log.Printf("Rendering view '%s'.", view.name)
-
-	w.Write(view.editorTemplate)
-}
-
-func (view *PasteView) renderTemplate(readOnly bool) string {
-	log.Printf("Rendering view template '%s'.", view.name)
-
-	ctx := newTemplateRenderContext()
-	ctx.ReadOnly = readOnly
-
-	var builder strings.Builder
-	tmpl := template.Must(template.ParseGlob("web/template/*.html"))
-	tmpl = template.Must(tmpl.ParseGlob("web/css/*.css"))
-	tmpl.ExecuteTemplate(&builder, "index.html", ctx)
-	tmplMini := view.minifyTemplate(builder.String())
-	return tmplMini
-}
-
-func (view *PasteView) minifyTemplate(str string) string {
-	log.Printf("Minifying view template '%s'.", view.name)
-
-	m := minify.New()
-	m.AddFunc("text/css", css.Minify)
-	m.AddFunc("text/html", html.Minify)
-	m.AddFunc("image/svg+xml", svg.Minify)
-	m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
-
-	res, err := m.String("text/html", str)
-
+func (view *PasteView) getPaste(params httprouter.Params) (*model.Paste, error) {
+	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
 	if err != nil {
-		log.Panicln("Failed to minify HTML template")
+		return nil, err
 	}
-
-	return res
+	return view.store.Select(id)
 }
