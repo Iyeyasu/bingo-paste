@@ -1,8 +1,10 @@
 {{ define "content" }}
 
 <div class="content error">
-    <div class="error__status_code">{{ "{{ .StatusCode }}" }}</div>
-    <div class="error__description">{{ "{{ .Description }}" }}</div>
+    <div class="content__body">
+        <div class="error__status_code">{{ "{{ .StatusCode }}" }}</div>
+        <div class="error__description">{{ "{{ .Description }}" }}</div>
+    </div>
 </div>
 
 {{ end }}

@@ -20,12 +20,15 @@ func main() {
 
 	router := httprouter.New()
 	pasteView := view.NewPasteView(pasteStore)
+	listView := view.NewListView(pasteStore)
 	errorView := view.NewErrorView()
 
 	router.GET("/favicon.ico", faviconHandler)
 	router.GET("/", pasteView.ServeEditor)
 	router.GET("/view/:id", pasteView.ServePaste)
 	router.GET("/view/:id/raw", pasteView.ServeRawPaste)
+	router.GET("/list", listView.ServeList)
+	router.GET("/list?limit=:id", listView.ServeList)
 	router.NotFound = errorView
 
 	pasteEndPoint := api.NewPasteEndPoint(router, pasteStore)

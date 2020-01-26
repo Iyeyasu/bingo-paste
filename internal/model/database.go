@@ -27,6 +27,11 @@ var (
 	maxConnectionLifetime = 5 * time.Minute
 )
 
+// Scannable is a common interface for sql.Row and sql.Rows.
+type Scannable interface {
+	Scan(dest ...interface{}) error
+}
+
 // NewDatabase opens a new SQL connection.
 func NewDatabase() *sql.DB {
 	driver, connStr, err := getDataSource()

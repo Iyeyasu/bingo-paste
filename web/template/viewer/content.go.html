@@ -1,8 +1,8 @@
 {{ define "content" }}
 
-<div class="content editor">
-    <input class="editor__title" type="text" name="title" placeholder="Untitled" value="{{ "{{ .Title }}" }}" readonly>
-    <div class="editor__body">{{ "{{ unescape .FormattedContent }}" }}</div>
+<div class="content">
+    <input class="content__title" type="text" name="title" placeholder="Untitled" value="{{ "{{ .Title }}" }}" readonly>
+    <div class="content__body">{{ "{{ unescape .FormattedContent }}" }}</div>
 </div>
 
 {{ end }}

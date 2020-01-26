@@ -2,19 +2,23 @@ package model
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	util "github.com/Iyeyasu/bingo-paste/internal/util/html"
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	deleteExpiredInterval = time.Minute * time.Duration(5)
+)
+
 // PasteStore is the store for pastes.
 type PasteStore struct {
-	selectStmt        *sql.Stmt
-	insertStmt        *sql.Stmt
-	deleteStmt        *sql.Stmt
-	deleteExpiredStmt *sql.Stmt
+	selectStmt            *sql.Stmt
+	selectPublicSliceStmt *sql.Stmt
+	insertStmt            *sql.Stmt
+	deleteStmt            *sql.Stmt
+	deleteExpiredStmt     *sql.Stmt
 }
 
 // NewPasteStore creates a new PasteStore instance.
@@ -28,6 +32,7 @@ func NewPasteStore(db *sql.DB) *PasteStore {
 	store.selectStmt = getSelectStatement(db)
 	store.insertStmt = getInsertStatement(db)
 	store.deleteStmt = getDeleteStatement(db)
+	store.selectPublicSliceStmt = getSelectPublicSliceStatement(db)
 	store.deleteExpiredStmt = getDeleteExpiredStatement(db)
 
 	go store.monitorExpired()
@@ -40,14 +45,17 @@ func (store *PasteStore) Insert(paste *Paste) (int64, error) {
 	log.Debug("Inserting new paste")
 
 	id := int64(0)
+	timeCreated := time.Now().Unix()
+	timeExpires := timeCreated + int64(paste.Duration.Seconds())
 	err := store.insertStmt.QueryRow(
 		paste.Title,
 		paste.RawContent,
 		util.HighlightSyntax(paste.Language, paste.RawContent),
 		paste.IsPublic,
-		time.Now().Unix(),
-		paste.Duration,
-		paste.Language).Scan(&id)
+		timeCreated,
+		timeExpires,
+		paste.Language,
+	).Scan(&id)
 
 	if err != nil {
 		log.Errorf("Failed to create paste: %s", err)
@@ -61,25 +69,61 @@ func (store *PasteStore) Insert(paste *Paste) (int64, error) {
 func (store *PasteStore) Select(id int64) (*Paste, error) {
 	log.Debugf("Retrieving paste %d", id)
 
+	row := store.selectStmt.QueryRow(id, time.Now().Unix())
+	return store.scanRow(row)
+}
+
+// SelectPublicSlice returns a slice of public pastes sorted by their creation time.
+func (store *PasteStore) SelectPublicSlice(start int64, count int64, filter string) ([]*Paste, error) {
+	log.Debugf("Retrieving %d public pastes starting from number %d", count, start)
+
+	rows, err := store.selectPublicSliceStmt.Query(count, start, time.Now().Unix())
+	if err != nil {
+		log.Debugf("Failed to retrieve pastes: %s", err)
+		return nil, err
+	}
+
+	pastes := []*Paste{}
+	defer rows.Close()
+	for rows.Next() {
+		paste, err := store.scanRow(rows)
+		if err == nil {
+			pastes = append(pastes, paste)
+		}
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Debugf("Failed to retrieve pastes: %s", err)
+		return nil, err
+	}
+
+	return pastes, nil
+}
+
+func (store *PasteStore) scanRow(row Scannable) (*Paste, error) {
 	paste := new(Paste)
 	timeCreated := int64(0)
-	err := store.selectStmt.QueryRow(id).Scan(
+	timeExpires := int64(0)
+	err := row.Scan(
 		&paste.ID,
 		&paste.Title,
 		&paste.RawContent,
 		&paste.FormattedContent,
 		&paste.IsPublic,
 		&timeCreated,
-		&paste.Duration,
+		&timeExpires,
 		&paste.Language)
-	paste.TimeCreated = time.Unix(timeCreated, 0)
 
 	if err != nil {
-		log.Debugf("Failed to retrieve paste %d: %s", id, err)
+		log.Debugf("Failed to retrieve paste: %s", err)
 		return nil, err
 	}
 
-	return store.filterExpired(paste)
+	paste.TimeCreated = time.Unix(timeCreated, 0)
+	paste.Duration = time.Second * time.Duration(timeExpires-time.Now().Unix())
+	log.Debugf("Retrieved paste %d (expires in %s)", paste.ID, paste.Duration)
+	return paste, nil
 }
 
 // Delete deletes the paste with the given id from the database.
@@ -98,7 +142,7 @@ func (store *PasteStore) monitorExpired() {
 	log.Info("Monitoring expired pastes")
 
 	store.deleteExpired()
-	for range time.Tick(time.Hour) {
+	for range time.Tick(deleteExpiredInterval) {
 		store.deleteExpired()
 	}
 }
@@ -119,30 +163,6 @@ func (store *PasteStore) deleteExpired() {
 	log.Infof("Deleted %d expired pastes", count)
 }
 
-func (store *PasteStore) filterExpired(paste *Paste) (*Paste, error) {
-	log.Debugf("Checking if paste %d with life time %d has expired", paste.ID, int64(paste.Duration.Seconds()))
-
-	timeLeft := paste.TimeCreated.Add(paste.Duration).Sub(time.Now())
-	if timeLeft > 0 {
-		log.Debugf("Paste %d has not expired (%s left)", paste.ID, timeLeft)
-		return paste, nil
-	}
-
-	err := store.Delete(paste.ID)
-	if err != nil {
-		log.Debugf("Failed to delete expired paste %d: %s", paste.ID, err)
-		return nil, err
-	}
-
-	if paste.Duration > 0 {
-		log.Debugf("Paste %d has expired", paste.ID)
-		return nil, fmt.Errorf("paste %d expired", paste.ID)
-	}
-
-	log.Debugf("Paste %d burned on read", paste.ID)
-	return paste, nil
-}
-
 func createTable(db *sql.DB) {
 	log.Debug("Creating table 'pastes'")
 
@@ -158,10 +178,11 @@ func createTable(db *sql.DB) {
 		title text NOT NULL,
 		raw_content text NOT NULL,
 		formatted_content text NOT NULL,
-		language text NOT NULL,
-		is_public bool,
-		time_created_seconds bigint,
-		duration bigint)
+		is_public bool NOT NULL,
+		time_created_seconds bigint NOT NULL,
+		time_expires_seconds bigint NOT NULL,
+		language text NOT NULL
+	)
 	`
 	_, err = db.Exec(q)
 	if err != nil {
@@ -210,44 +231,65 @@ func createPseudoEncrypt(db *sql.DB) {
 }
 
 func getInsertStatement(db *sql.DB) *sql.Stmt {
-	log.Trace("Getting prepared insert statement for pastes")
+	query := `
+	INSERT INTO pastes
+	(title, raw_content, formatted_content, is_public, time_created_seconds, time_expires_seconds, language)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	RETURNING id
+	`
 
-	query := "INSERT INTO pastes (title, raw_content, formatted_content, is_public, time_created_seconds, duration, language) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
 	stmt, err := db.Prepare(query)
 	if err != nil {
-		log.Fatalf("Failed to get statement: %s", err)
+		log.Fatalf("Failed to get insert statement: %s", err)
 	}
 	return stmt
 }
 
 func getSelectStatement(db *sql.DB) *sql.Stmt {
-	log.Trace("Getting prepared select statement for pastes")
+	query := `
+	SELECT id, title, raw_content, formatted_content, is_public, time_created_seconds, time_expires_seconds, language
+	FROM pastes
+	WHERE id = $1
+	AND time_expires_seconds > $2
+	`
 
-	query := "SELECT id, title, raw_content, formatted_content, is_public, time_created_seconds, duration, language FROM pastes WHERE id = $1"
 	stmt, err := db.Prepare(query)
 	if err != nil {
-		log.Fatalf("Failed to get statement: %s", err)
+		log.Fatalf("Failed to get select statement: %s", err)
+	}
+	return stmt
+}
+
+func getSelectPublicSliceStatement(db *sql.DB) *sql.Stmt {
+	query := `
+	SELECT id, title, raw_content, formatted_content, is_public, time_created_seconds, time_expires_seconds, language
+	FROM pastes
+	WHERE time_expires_seconds > $3
+	AND is_public = TRUE
+	ORDER BY time_created_seconds DESC, id ASC
+	LIMIT $1 OFFSET $2
+	`
+
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		log.Fatalf("Failed to get select public slice statement: %s", err)
 	}
 	return stmt
 }
 
 func getDeleteStatement(db *sql.DB) *sql.Stmt {
-	log.Trace("Getting prepared delete statement for pastes")
-
 	stmt, err := db.Prepare("DELETE FROM pastes WHERE id = $1")
 	if err != nil {
-		log.Fatalf("Failed to get statement: %s", err)
+		log.Fatalf("Failed to get delete statement: %s", err)
 	}
 
 	return stmt
 }
 
 func getDeleteExpiredStatement(db *sql.DB) *sql.Stmt {
-	log.Trace("Getting prepared delete expired statement for pastes")
-
-	stmt, err := db.Prepare("DELETE FROM pastes WHERE duration + time_created_seconds < $1")
+	stmt, err := db.Prepare("DELETE FROM pastes WHERE time_expires_seconds < $1")
 	if err != nil {
-		log.Fatalf("Failed to get statement: %s", err)
+		log.Fatalf("Failed to get delete expired statement: %s", err)
 	}
 
 	return stmt

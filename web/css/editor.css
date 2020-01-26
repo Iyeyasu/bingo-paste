@@ -1,0 +1,88 @@
+.content__button--create {
+  position: absolute;
+  display: flex;
+  width: 4em;
+  height: 4em;
+  border-radius: 4em;
+  bottom: 1.5em;
+  right: 1.5em;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-create);
+  -webkit-transition: all 0.1s ease-in-out;
+  -moz-transition: all 0.1s ease-in-out;
+  transition: all 0.1s ease-in-out;
+  box-shadow: 0.1em 0.15em #0005;
+  background-color: var(--bg-create);
+}
+
+.content__button--create:-moz-focusring {
+    color: transparent;
+}
+
+.content__button--create:hover {
+  transform: scale(1.1);
+}
+
+.content__button--create > .content__button__icon {
+  fill: var(--fg-create);
+  width: 90%;
+  height: 90%;
+}
+
+.options__dropdown {
+  position: relative;
+  display: flex;
+  margin: 0em var(--field-spacing);
+  width: var(--field-width);
+  height: var(--field-height);
+  border: none;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.options__dropdown > select {
+  padding: 0em 0em 0em 2em;
+  width: 100%;
+  height: 100%;
+  border: none;
+  color: var(--fg-dropdown);
+  background-color: var(--bg-dropdown);
+  background-image: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  -webkit-transition: color 100ms ease-in-out;
+  -ms-transition: color 100ms ease-in-out;
+  transition: color 100ms ease-in-out;
+  outline: none;
+}
+
+.options__dropdown > select:focus,
+.options__dropdown > select:hover {
+    outline: none;
+    color: var(--fg-dropdown-focused)
+}
+
+.options__dropdown > select:-moz-focusring {
+    color: transparent;
+   text-shadow: 0 0 0 var(--fg-editor);
+}
+
+.options__dropdown > .options__dropdown__icon {
+  position: absolute;
+  width: 1.2em;
+  height: 1.2em;
+  text-align: center;
+  fill: var(--icon-dropdown);
+  pointer-events: none;
+}
+
+.options__dropdown > .options__dropdown__icon--right {
+  padding: 0.46em 0.50em;
+}
+
+.options__dropdown > .options__dropdown__icon--arrow {
+  right: 0;
+  padding: 0.46em 0.50em;
+}

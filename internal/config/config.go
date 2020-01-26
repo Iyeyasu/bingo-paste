@@ -106,7 +106,7 @@ func newConfig(filename string) *Config {
 	conf.Extensions.Expiry.Enabled = parser.getBool("extensions.expiry.enabled", false)
 	if conf.Extensions.Expiry.Enabled {
 		log.Debug("Expiry extension enabled")
-		defaultDurations := []int{0, 10, 60, 1440, 10800, 43200, 525600}
+		defaultDurations := []int{10, 60, 1440, 10080, 43200, 525600}
 		conf.Extensions.Expiry.Durations = parser.getDurations("extensions.expiry.durations", defaultDurations)
 	}
 

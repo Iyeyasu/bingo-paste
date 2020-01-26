@@ -12,11 +12,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-var (
-	editorTemplate = "editor.html"
-	viewerTemplate = "viewer.html"
-)
-
 // PasteView .
 type PasteView struct {
 	store          *model.PasteStore

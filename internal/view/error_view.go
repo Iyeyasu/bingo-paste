@@ -29,7 +29,7 @@ func NewErrorView() *ErrorView {
 	return view
 }
 
-// Handle sets up the HTTP request handling for the given URL.
+// Serve sets up the HTTP request handling for the given URL.
 func (view *ErrorView) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	http_util.WriteTemplate(w, view.template, ErrorTemplateContext{
 		StatusCode:  http.StatusNotFound,

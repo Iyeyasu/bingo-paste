@@ -28,7 +28,7 @@ func HighlightSyntax(lang string, content string) string {
 		return html.EscapeString(content)
 	}
 
-	return builder.String()
+	return Minify(builder.String())
 }
 
 func getLexer(lang string) chroma.Lexer {

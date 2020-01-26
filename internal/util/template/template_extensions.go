@@ -48,9 +48,10 @@ func parseTemplate(name string, tmpl *template.Template) *template.Template {
 
 func newFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"unescape":     unescape,
-		"formatExpiry": formatExpiry,
-		"duration":     duration,
+		"duration":       duration,
+		"formatExpiry":   formatExpiry,
+		"formatPastDate": formatPastDate,
+		"unescape":       unescape,
 	}
 }
 
@@ -77,5 +78,12 @@ func formatExpiry(duration time.Duration, limit int) string {
 	}
 
 	log.Tracef("Template Function: formatted expiry duration %d -> %s", duration, result)
+	return result
+}
+
+// Formats paste date into a human readable form of form "<time> ago".
+func formatPastDate(date time.Time) string {
+	result := fmt.Sprintf("%s ago", fmt_util.FormatDuration(time.Now().Sub(date), 1))
+	log.Tracef("Template Function: formatted past date %s", result)
 	return result
 }

@@ -1,7 +1,7 @@
-log_level: debug
+log_level: info
 
 appearance:
-  title: "Bingo"
+  title: "Pastebin"
   theme: "dark"
 
 db:
