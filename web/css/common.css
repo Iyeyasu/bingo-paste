@@ -126,10 +126,10 @@ body {
 }
 
 .navbar__link {
-    font-size: var(--font-size-navbar-link);
-    margin: 0 0.5em;
-    color: var(--fg-link);
-    text-decoration: none;
+  font-size: var(--font-size-navbar-link);
+  margin: 0 0.5em;
+  color: var(--fg-link);
+  text-decoration: none;
 }
 
 .content {

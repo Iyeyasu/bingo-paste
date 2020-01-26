@@ -10,8 +10,8 @@
                 </svg>
                 <div class="navbar__title">{{ .Config.Appearance.Title }}</div>
             </a>
-            <a class="navbar__link" href="/">Write</a>
-            <a class="navbar__link" href="/list">Browse</a>
+            <a class="navbar__link {{ if eq .View "editor" }} navbar__link-selected {{ end }}" href="/">Write</a>
+            <a class="navbar__link {{ if eq .View "list" }} navbar__link-selected {{ end }}" href="/list">Browse</a>
         </div>
     {{ end }}
 

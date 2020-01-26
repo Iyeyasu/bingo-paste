@@ -21,11 +21,12 @@ type PasteView struct {
 
 // NewPasteView .
 func NewPasteView(store *model.PasteStore) *PasteView {
-	ctx := template_util.NewTemplateContext()
+	editorCtx := template_util.NewTemplateContext("editor")
+	viewerCtx := template_util.NewTemplateContext("viewer")
 	view := new(PasteView)
 	view.store = store
-	view.editorHTML = []byte(template_util.RenderTemplate("editor", ctx))
-	view.viewerTemplate = template_util.PrerenderTemplate("viewer", ctx)
+	view.editorHTML = []byte(template_util.RenderTemplate("editor", editorCtx))
+	view.viewerTemplate = template_util.PrerenderTemplate("viewer", viewerCtx)
 	return view
 }
 

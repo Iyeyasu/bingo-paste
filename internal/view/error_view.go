@@ -22,7 +22,7 @@ type ErrorTemplateContext struct {
 
 // NewErrorView creates a new error view.
 func NewErrorView() *ErrorView {
-	ctx := template_util.NewTemplateContext()
+	ctx := template_util.NewTemplateContext("error")
 	view := new(ErrorView)
 	view.name = "Error"
 	view.template = template_util.PrerenderTemplate("error", ctx)

@@ -24,7 +24,7 @@ type ListView struct {
 
 // NewListView .
 func NewListView(store *model.PasteStore) *ListView {
-	ctx := template_util.NewTemplateContext()
+	ctx := template_util.NewTemplateContext("list")
 	view := new(ListView)
 	view.store = store
 	view.template = template_util.PrerenderTemplate("list", ctx)
