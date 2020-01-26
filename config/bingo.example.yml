@@ -14,11 +14,6 @@ db:
   password: bingo
   ssl: disable
 
-redis:
-  host: redis
-  port: 1111
-  password: 1111
-
 extensions:
   visibility:
     enabled: true

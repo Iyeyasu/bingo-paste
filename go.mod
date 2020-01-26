@@ -5,6 +5,8 @@ go 1.13
 require (
 	github.com/Iyeyasu/durafmt v0.0.0-20200123121030-bee0a44d8ea1
 	github.com/alecthomas/chroma v0.7.1
+	github.com/go-redis/redis v6.15.6+incompatible
+	github.com/go-redis/redis/v7 v7.0.0-beta.5
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/hako/durafmt v0.0.0-20191009132224-3f39dc1ed9f4

@@ -13,11 +13,13 @@ import (
 
 // RenderTemplate renders the template with the given name, converting it to a string.
 func RenderTemplate(name string, ctx interface{}) string {
+	log.Debugf("Rendering template '%s'", name)
+
 	tmpl := parseTemplate(name, newTemplate())
 	builder := new(strings.Builder)
 	err := tmpl.Execute(builder, ctx)
 	if err != nil {
-		log.Fatalf("Failed to render template: %s", name, err.Error())
+		log.Fatalf("Failed to render template '%s': %s", name, err.Error())
 	}
 
 	return html_util.Minify(builder.String())
@@ -27,6 +29,8 @@ func RenderTemplate(name string, ctx interface{}) string {
 // resulting string into an new template. Useful when you have some parts of
 // the page that are static and don't want to render them every time.
 func PrerenderTemplate(name string, ctx interface{}) *template.Template {
+	log.Debugf("Prerendering template '%s'", name)
+
 	render := RenderTemplate(name, ctx)
 	return template.Must(newTemplate().Parse(render))
 }
@@ -52,7 +56,7 @@ func newFuncMap() template.FuncMap {
 
 // Unescapes HTML so that we can inject syntax highlighted code to the viewer.
 func unescape(str string) template.HTML {
-	log.Tracef("Template Function: unescaped HTML template %s", str)
+	log.Tracef("Template Function: unescaped HTML templates", str)
 	return template.HTML(str)
 }
 

@@ -33,6 +33,11 @@ func newConfigParser(filename string) *configParser {
 	return parser
 }
 
+func (parser *configParser) hasOption(name string) bool {
+	_, err := parser.getOption(name)
+	return err == nil
+}
+
 func (parser *configParser) getOption(name string) (interface{}, error) {
 	path := strings.Split(name, ".")
 	m := parser.configMap

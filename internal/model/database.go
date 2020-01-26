@@ -20,26 +20,24 @@ import (
 )
 
 var (
-	connectionRetries     = 45
+	dbConnectionRetries   = 45
 	connectionTimeout     = 60
 	maxOpenConnections    = 20
 	maxIdleConnections    = 10
 	maxConnectionLifetime = 5 * time.Minute
 )
 
-// Database contains all different stores and the SQL connection instance.
-type Database struct {
-	Pastes *PasteStore
-}
-
-// NewDatabase opens a new database connection and initializes stores.
-func NewDatabase() *Database {
+// NewDatabase opens a new SQL connection.
+func NewDatabase() *sql.DB {
 	driver, connStr, err := getDataSource()
+
+	log.Infof("Opening %s database", driver)
+	log.Debugf("Database connection string: %s", connStr)
 	if err != nil {
 		log.Fatalf("Failed to open database: %s", err)
 	}
 
-	db, err := openDatabase(driver, connStr)
+	db, err := sql.Open(driver, connStr)
 	if err != nil {
 		log.Fatalf("Failed to open database: %s", err)
 	}
@@ -50,27 +48,13 @@ func NewDatabase() *Database {
 	}
 
 	configureDatabase(db)
-
-	database := new(Database)
-	database.createStores(db)
-	return database
-}
-
-func (database *Database) createStores(db *sql.DB) {
-	database.Pastes = NewPasteStore(db)
-}
-
-func openDatabase(driver string, connStr string) (*sql.DB, error) {
-	log.Infof("Opening %s database", driver)
-	log.Debugf("Database connection string: %s", connStr)
-
-	return sql.Open(driver, connStr)
+	return db
 }
 
 func pollDatabase(db *sql.DB) error {
 	log.Infof("Trying to connect to database for %d seconds", connectionRetries)
 
-	for i := 0; i <= connectionRetries; i++ {
+	for i := 0; i <= dbConnectionRetries; i++ {
 		err := db.Ping()
 		if err == nil {
 			log.Info("Connected to database")

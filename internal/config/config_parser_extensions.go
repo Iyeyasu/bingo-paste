@@ -9,6 +9,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	mainLanguages = []string{
+		"Bash", "C", "C#", "C++",
+		"CMake", "CSS", "HTML", "INI",
+		"Java", "JavaScript", "JSON", "PHP",
+		"PowerShell", "Python", "Python 3",
+		"SQL", "TypeScript", "XML", "YAML",
+	}
+)
+
 func (parser *configParser) getLogLevel(name string, defaultValue string) log.Level {
 	logLevel := parser.getStr(name, defaultValue)
 	switch logLevel {
@@ -32,28 +42,6 @@ func (parser *configParser) getLogLevel(name string, defaultValue string) log.Le
 	}
 }
 
-func (parser *configParser) getLanguages(name string, defaultValue string) []string {
-	var languages []string
-	languageSet := parser.getStr(name, defaultValue)
-
-	switch languageSet {
-	case "base":
-		languages = getBaseLanguages()
-	case "all":
-		languages = getAllLanguages()
-	case "custom":
-		log.Debug("Using language set 'custom'")
-		languages = parser.getStrArray("extensions.highlight.languages", []string{})
-	default:
-		log.Fatalf("Failed to parse log file: unknown value 'language_set: %s'", languageSet)
-		return nil
-	}
-
-	log.Debugf("Using '%s' language set (%d languages)", languageSet, len(languages))
-	log.Debugf("Used languages are %v", languages)
-	return languages
-}
-
 func (parser *configParser) getDurations(name string, defaultValue []int) []time.Duration {
 	dur := parser.getIntArray(name, defaultValue)
 	durations := make([]time.Duration, len(dur), len(dur))
@@ -66,19 +54,7 @@ func (parser *configParser) getDurations(name string, defaultValue []int) []time
 	return durations
 }
 
-func getBaseLanguages() []string {
-	return []string{
-		"Bash", "C", "C#", "C++", "Clojure",
-		"CMake", "CSS", "Dart", "Go", "GLSL",
-		"Elixir", "Haskell", "HTML", "HTTP", "INI",
-		"Java", "JavaScript", "JSON", "Kotlin", "Objective-C",
-		"Perl", "PHP", "PowerShell", "Python", "Python 3",
-		"R", "Ruby", "Rust", "Scala", "SQL",
-		"Swift", "TypeScript", "VBA", "XML", "YAML",
-	}
-}
-
-func getAllLanguages() []string {
+func (parser *configParser) getLanguages() []string {
 	langCount := lexers.Registry.Lexers.Len()
 	languages := make([]string, 0, langCount)
 	for i := 0; i < langCount; i++ {
@@ -89,8 +65,24 @@ func getAllLanguages() []string {
 	}
 
 	sort.Slice(languages, func(i, j int) bool {
+		iIsMain := isMainLanguage(languages[i])
+		jIsMain := isMainLanguage(languages[j])
+		if iIsMain && !jIsMain {
+			return true
+		} else if !iIsMain && jIsMain {
+			return false
+		}
 		return strings.ToLower(languages[i]) < strings.ToLower(languages[j])
 	})
 
 	return languages
+}
+
+func isMainLanguage(lang string) bool {
+	for _, mainLang := range mainLanguages {
+		if lang == mainLang {
+			return true
+		}
+	}
+	return false
 }

@@ -1,7 +1,9 @@
 {
     "cSpell.words": [
         "Debugln",
+        "Errorln",
         "Infof",
+        "Infoln",
         "Tokenise",
         "Tracef",
         "Warnf",

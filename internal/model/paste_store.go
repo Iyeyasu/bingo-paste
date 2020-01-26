@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/util/html"
+	util "github.com/Iyeyasu/bingo-paste/internal/util/html"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -124,7 +124,7 @@ func (store *PasteStore) filterExpired(paste *Paste) (*Paste, error) {
 
 	timeLeft := paste.TimeCreated.Add(paste.Duration).Sub(time.Now())
 	if timeLeft > 0 {
-		log.Debugf("Paste %d has not expired (%d seconds left)", paste.ID, int64(timeLeft.Seconds()))
+		log.Debugf("Paste %d has not expired (%s left)", paste.ID, timeLeft)
 		return paste, nil
 	}
 

@@ -31,9 +31,11 @@ type Config struct {
 	}
 
 	Cache struct {
+		Enabled  bool
 		Host     string
-		Port     string
+		Port     int
 		Password string
+		Database int
 	}
 
 	Extensions struct {
@@ -76,8 +78,19 @@ func newConfig(filename string) *Config {
 	conf.Database.Password = parser.getStr("db.password", "")
 	conf.Database.Database = parser.getStr("db.database", "")
 	conf.Database.Host = parser.getStr("db.host", "localhost")
-	conf.Database.Port = parser.getInt("db.port", 0)
 	conf.Database.SSL = parser.getStr("db.ssl", "required")
+	switch conf.Database.Driver {
+	case "postgres":
+		conf.Database.Port = parser.getInt("db.port", 5432)
+	case "mysql":
+		conf.Database.Port = parser.getInt("db.port", 3306)
+	}
+
+	conf.Cache.Enabled = parser.hasOption("redis")
+	conf.Cache.Host = parser.getStr("redis.host", "localhost")
+	conf.Cache.Port = parser.getInt("redis.port", 6379)
+	conf.Cache.Password = parser.getStr("redis.password", "")
+	conf.Cache.Database = parser.getInt("redis.database", 0)
 
 	conf.Extensions.Visibility.Enabled = parser.getBool("extensions.visibility.enabled", false)
 	if conf.Extensions.Visibility.Enabled {
@@ -87,7 +100,7 @@ func newConfig(filename string) *Config {
 	conf.Extensions.Highlight.Enabled = parser.getBool("extensions.highlight.enabled", false)
 	if conf.Extensions.Highlight.Enabled {
 		log.Debug("Syntax highlight extension enabled")
-		conf.Extensions.Highlight.Languages = parser.getLanguages("extensions.highlight.languageSet", "base")
+		conf.Extensions.Highlight.Languages = parser.getLanguages()
 	}
 
 	conf.Extensions.Expiry.Enabled = parser.getBool("extensions.expiry.enabled", false)

@@ -1,28 +1,32 @@
 version: '3'
 services:
-  db: 
+  db:
     container_name: bingo-db
     image: postgres:alpine
     volumes:
       - db:/var/lib/postgresql/data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
     environment:
       - POSTGRES_DB=bingo
       - POSTGRES_USER=bingo
       - POSTGRES_PASSWORD=bingo
+
+  redis:
+    container_name: bingo-redis
+    image: redis:alpine
+    volumes:
+      - redis:/data
 
   app:
     container_name: bingo-app
     image: bingo:latest
     depends_on:
       - db
+      - redis
     volumes:
       - ./config/bingo.example.yml:/bingo/bingo.yml
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
     ports:
       - "8080:80"
 
 volumes:
   db:
+  redis:
