@@ -3,7 +3,6 @@ log_level: debug
 appearance:
   title: "Bingo"
   theme: "dark"
-  #icon: /path/to/icon.svg
 
 db:
   driver: postgres
@@ -18,18 +17,8 @@ extensions:
   visibility:
     enabled: true
 
-  expiry:
-    enabled: true
-    durations:
-      - 0
-      - 5
-      - 60
-      - 1440
-
   highlight:
     enabled: true
-    languages: base #base/all/custom
-    custom_languages:
-      - "Go"
-      - "Python3"
-      - "HTML"
+
+  expiry:
+    enabled: true
