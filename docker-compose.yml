@@ -10,18 +10,11 @@ services:
       - POSTGRES_USER=bingo
       - POSTGRES_PASSWORD=bingo
 
-  redis:
-    container_name: bingo-redis
-    image: redis:alpine
-    volumes:
-      - redis:/data
-
   app:
     container_name: bingo-app
     image: bingo:latest
     depends_on:
       - db
-      - redis
     volumes:
       - ./config/bingo.example.yml:/bingo/bingo.yml
     ports:
@@ -29,4 +22,3 @@ services:
 
 volumes:
   db:
-  redis:

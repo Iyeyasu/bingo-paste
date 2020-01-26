@@ -3,6 +3,11 @@
 <div class="content">
     <div class="content__body list">
         <div class="list__title">Public Pastes</div>
+
+        {{ "{{ if not (len .) }}" }}
+        <div class="list__empty">No pastes found</div>
+        {{ "{{ end }}" }}
+
         {{ "{{ range . }}" }}
         {{ unescape `<a class="list__element" href="/view/{{ .ID }}">` }}
             <div class="list__element__body">

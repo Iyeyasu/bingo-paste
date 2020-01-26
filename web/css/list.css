@@ -2,6 +2,7 @@
   --fg-list: #1b1d24;
   --bg-list: #f6f6f6;
   --border-list: #c2c2c2;
+  --fg-empty-list: #a0a0a0;
   --highlight-list: #e6e6e6;
   --fg-label: #1b1d24;
   --bg-label: #dbdbdb;
@@ -11,6 +12,7 @@
 [data-theme="dark"] {
   --fg-list: #c6cbcf;
   --bg-list: #1b1d24;
+  --fg-empty-list: #676473;
   --border-list: #2f3137;
   --highlight-list: #22252c;
   --fg-label: #c6cbcf;
@@ -22,12 +24,21 @@
   font-family: sans-serif;
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .list__title {
   font-size: 1.6em;
   padding-left: 0.2em;
   margin-bottom: 0.6em;
+}
+
+.list__empty {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  font-size: 1.2em;
+  color: var(--fg-empty-list);
 }
 
 .list__element {
