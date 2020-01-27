@@ -1,36 +1,23 @@
 :root {
-  --fg-list: #1b1d24;
-  --bg-list: #f6f6f6;
-  --border-list: #c2c2c2;
-  --fg-empty-list: #a0a0a0;
-  --highlight-list: #e6e6e6;
-  --fg-label: #1b1d24;
-  --bg-label: #dbdbdb;
   --border-label: #9ea2ae;
 }
 
 [data-theme="dark"] {
-  --fg-list: #c6cbcf;
-  --bg-list: #1b1d24;
-  --fg-empty-list: #676473;
-  --border-list: #2f3137;
-  --highlight-list: #22252c;
-  --fg-label: #c6cbcf;
-  --bg-label: #22252c;
   --border-label: #333333;
 }
 
-.list {
+.content > .list {
   font-family: sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 3em 3.8em;
 }
 
 .list__title {
   font-size: 1.6em;
   padding-left: 0.2em;
-  margin-bottom: 0.6em;
+  margin-bottom: 1.4em;
   align-self: flex-start
 }
 
@@ -39,18 +26,21 @@
   flex-grow: 1;
   align-items: center;
   font-size: 1.2em;
-  color: var(--fg-empty-list);
+  color: var(--color-text-body-disabled);
+}
+
+.list__element:first-of-type {
+  border-width: 1px 0 1px 0;
 }
 
 .list__element {
   display: block;
   outline: none;
   padding: 1em;
-  margin: 0.5em 0;
   text-decoration: none;
-  color: var(--fg-editor);
-  background-color: var(--bg-body);
-  border: solid 1px var(--border-list);
+  border: solid 1px var(--color-border-body);
+  border-width: 0 0 1px 0;
+  color: var(--color-text-body);
   -webkit-transition: background-color 100ms linear;
   -ms-transition: background-color 100ms linear;
   transition: background-color 100ms linear;
@@ -58,7 +48,7 @@
 }
 
 .list__element:hover {
-  background-color: var(--highlight-list);
+  background-color: var(--color-border-body);
 }
 
 .list__element .list__element__body {
@@ -73,8 +63,7 @@
 .list__element .list__element__label {
   align-self: flex-start;
   margin-left: 1.2em;
-  color: var(--fg-label);
-  background-color: var(--bg-label);
+  background-color: var(--color-bg-medium);
   padding: 0.1em 0.3em;
   border-radius: 0.3em;
   border: solid 1px var(--border-label);

@@ -12,8 +12,10 @@ import (
 )
 
 func main() {
-	// log.SetReportCaller(true)
 	log.SetLevel(config.Get().LogLevel)
+	if config.Get().LogLevel != log.InfoLevel {
+		log.SetReportCaller(true)
+	}
 
 	db := model.NewDatabase()
 	pasteStore := model.NewPasteStore(db)

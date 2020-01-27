@@ -11,12 +11,6 @@ import (
 
 	// Postgresql driver
 	_ "github.com/lib/pq"
-
-	// MySQL driver
-	_ "github.com/go-sql-driver/mysql"
-
-	// Sqllite3 driver
-	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -88,12 +82,8 @@ func getDataSource() (string, string, error) {
 	connStr := ""
 
 	switch driver {
-	case "sqlite3":
-		connStr = "file:sqlite.db?cache=shared&mode=memory"
 	case "postgres":
 		connStr = getPostgresConnectionString()
-	case "mysql":
-		connStr = getMySQLConnectionString()
 	default:
 		return "", "", fmt.Errorf("invalid database driver '%s'", driver)
 	}
@@ -106,19 +96,6 @@ func getPostgresConnectionString() string {
 		"postgres://%s:%s@%s:%d/%s?sslmode=%s&connect_timeout=%d",
 		config.Get().Database.Username,
 		config.Get().Database.Password,
-		config.Get().Database.Host,
-		config.Get().Database.Port,
-		config.Get().Database.Database,
-		config.Get().Database.SSL,
-		connectionTimeout)
-}
-
-func getMySQLConnectionString() string {
-	return fmt.Sprintf(
-		"%s:%s@%s(%s:%d)/%s?tls=%s&timeout=%d",
-		config.Get().Database.Username,
-		config.Get().Database.Password,
-		"tcp",
 		config.Get().Database.Host,
 		config.Get().Database.Port,
 		config.Get().Database.Database,

@@ -44,7 +44,10 @@ func (view *ListView) getPastes(params httprouter.Params) ([]*model.Paste, error
 	limitParam := params.ByName("limit")
 	searchParam := params.ByName("search")
 	if limitParam == "" {
-		return view.store.SelectPublicSlice(0, pastesPerPage, searchParam)
+		if searchParam == "" {
+			return view.store.SelectList(0, pastesPerPage)
+		}
+		return view.store.SearchList(searchParam, 0, pastesPerPage)
 	}
 
 	limit, err := strconv.ParseInt(limitParam, 10, 64)
@@ -52,5 +55,8 @@ func (view *ListView) getPastes(params httprouter.Params) ([]*model.Paste, error
 		return nil, err
 	}
 
-	return view.store.SelectPublicSlice(limit, pastesPerPage, searchParam)
+	if searchParam == "" {
+		return view.store.SelectList(limit, pastesPerPage)
+	}
+	return view.store.SearchList(searchParam, limit, pastesPerPage)
 }

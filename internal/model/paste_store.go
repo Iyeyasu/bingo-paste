@@ -14,11 +14,12 @@ var (
 
 // PasteStore is the store for pastes.
 type PasteStore struct {
-	selectStmt            *sql.Stmt
-	selectPublicSliceStmt *sql.Stmt
-	insertStmt            *sql.Stmt
-	deleteStmt            *sql.Stmt
-	deleteExpiredStmt     *sql.Stmt
+	selectStmt        *sql.Stmt
+	selectListStmt    *sql.Stmt
+	selectSearchStmt  *sql.Stmt
+	insertStmt        *sql.Stmt
+	deleteStmt        *sql.Stmt
+	deleteExpiredStmt *sql.Stmt
 }
 
 // NewPasteStore creates a new PasteStore instance.
@@ -32,7 +33,8 @@ func NewPasteStore(db *sql.DB) *PasteStore {
 	store.selectStmt = getSelectStatement(db)
 	store.insertStmt = getInsertStatement(db)
 	store.deleteStmt = getDeleteStatement(db)
-	store.selectPublicSliceStmt = getSelectPublicSliceStatement(db)
+	store.selectListStmt = getSelectListStatement(db)
+	store.selectSearchStmt = getSelectSearchStatement(db)
 	store.deleteExpiredStmt = getDeleteExpiredStatement(db)
 
 	go store.monitorExpired()
@@ -73,11 +75,11 @@ func (store *PasteStore) Select(id int64) (*Paste, error) {
 	return store.scanRow(row)
 }
 
-// SelectPublicSlice returns a slice of public pastes sorted by their creation time.
-func (store *PasteStore) SelectPublicSlice(start int64, count int64, filter string) ([]*Paste, error) {
+// SelectList returns a slice of public pastes sorted by their creation time.
+func (store *PasteStore) SelectList(start int64, count int64) ([]*Paste, error) {
 	log.Debugf("Retrieving %d public pastes starting from number %d", count, start)
 
-	rows, err := store.selectPublicSliceStmt.Query(count, start, time.Now().Unix())
+	rows, err := store.selectListStmt.Query(time.Now().Unix(), count, start)
 	if err != nil {
 		log.Debugf("Failed to retrieve pastes: %s", err)
 		return nil, err
@@ -99,6 +101,46 @@ func (store *PasteStore) SelectPublicSlice(start int64, count int64, filter stri
 	}
 
 	return pastes, nil
+}
+
+// SearchList returns a list of public pastes sorted by their creation time and matching given filter.
+func (store *PasteStore) SearchList(filter string, start int64, count int64) ([]*Paste, error) {
+	log.Debugf("Searching and retrieving %d public pastes starting from number %d", count, start)
+
+	rows, err := store.selectListStmt.Query(time.Now().Unix(), filter, count, start)
+	if err != nil {
+		log.Debugf("Failed to retrieve pastes: %s", err)
+		return nil, err
+	}
+
+	pastes := []*Paste{}
+	defer rows.Close()
+	for rows.Next() {
+		paste, err := store.scanRow(rows)
+		if err == nil {
+			pastes = append(pastes, paste)
+		}
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Debugf("Failed to retrieve pastes: %s", err)
+		return nil, err
+	}
+
+	return pastes, nil
+}
+
+// Delete deletes the paste with the given id from the database.
+func (store *PasteStore) Delete(id int64) error {
+	log.Debugf("Deleting paste %d", id)
+
+	_, err := store.deleteStmt.Exec(id)
+	if err != nil {
+		log.Debugf("Failed to delete paste %d: %s", id, err)
+	}
+
+	return err
 }
 
 func (store *PasteStore) scanRow(row Scannable) (*Paste, error) {
@@ -124,18 +166,6 @@ func (store *PasteStore) scanRow(row Scannable) (*Paste, error) {
 	paste.Duration = time.Second * time.Duration(timeExpires-time.Now().Unix())
 	log.Debugf("Retrieved paste %d (expires in %s)", paste.ID, paste.Duration)
 	return paste, nil
-}
-
-// Delete deletes the paste with the given id from the database.
-func (store *PasteStore) Delete(id int64) error {
-	log.Debugf("Deleting paste %d", id)
-
-	_, err := store.deleteStmt.Exec(id)
-	if err != nil {
-		log.Debugf("Failed to delete paste %d: %s", id, err)
-	}
-
-	return err
 }
 
 func (store *PasteStore) monitorExpired() {
@@ -190,6 +220,35 @@ func createTable(db *sql.DB) {
 	}
 
 	q = "ALTER SEQUENCE pastes_id_seq OWNED BY pastes.id"
+	_, err = db.Exec(q)
+	if err != nil {
+		log.Fatalf("Failed to create table: %s", err)
+	}
+
+	q = "CREATE INDEX IF NOT EXISTS index_pastes_expires ON pastes (time_expires_seconds, is_public)"
+	_, err = db.Exec(q)
+	if err != nil {
+		log.Fatalf("Failed to create table: %s", err)
+	}
+
+	q = "ALTER TABLE pastes ADD COLUMN IF NOT EXISTS tsv tsvector"
+	_, err = db.Exec(q)
+	if err != nil {
+		log.Fatalf("Failed to create table: %s", err)
+	}
+
+	q = `
+	UPDATE pastes SET tsv =
+		setweight(to_tsvector(title), 'A') ||
+		setweight(to_tsvector(raw_content), 'B') ||
+		setweight(to_tsvector(language), 'C');
+	`
+	_, err = db.Exec(q)
+	if err != nil {
+		log.Fatalf("Failed to create table: %s", err)
+	}
+
+	q = "CREATE INDEX IF NOT EXISTS index_pastes_tsv ON pastes USING GIN(tsv);"
 	_, err = db.Exec(q)
 	if err != nil {
 		log.Fatalf("Failed to create table: %s", err)
@@ -260,19 +319,37 @@ func getSelectStatement(db *sql.DB) *sql.Stmt {
 	return stmt
 }
 
-func getSelectPublicSliceStatement(db *sql.DB) *sql.Stmt {
+func getSelectListStatement(db *sql.DB) *sql.Stmt {
 	query := `
 	SELECT id, title, raw_content, formatted_content, is_public, time_created_seconds, time_expires_seconds, language
 	FROM pastes
-	WHERE time_expires_seconds > $3
+	WHERE time_expires_seconds > $1
 	AND is_public = TRUE
 	ORDER BY time_created_seconds DESC, id ASC
-	LIMIT $1 OFFSET $2
+	LIMIT $2 OFFSET $3
 	`
 
 	stmt, err := db.Prepare(query)
 	if err != nil {
-		log.Fatalf("Failed to get select public slice statement: %s", err)
+		log.Fatalf("Failed to get select list statement: %s", err)
+	}
+	return stmt
+}
+
+func getSelectSearchStatement(db *sql.DB) *sql.Stmt {
+	query := `
+	SELECT id, title, raw_content, formatted_content, is_public, time_created_seconds, time_expires_seconds, language
+	FROM pastes
+	WHERE time_expires_seconds > $1
+	AND is_public = TRUE
+	AND tsv @@ $2
+	ORDER BY time_created_seconds DESC, id ASC
+	LIMIT $3 OFFSET $4
+	`
+
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		log.Fatalf("Failed to get select search statement: %s", err)
 	}
 	return stmt
 }
