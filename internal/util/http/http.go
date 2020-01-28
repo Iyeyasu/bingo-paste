@@ -33,7 +33,7 @@ func WriteRaw(w http.ResponseWriter, contentType string, output []byte) {
 	WriteDefaultHeaders(w, contentType)
 	_, err := w.Write(output)
 	if err != nil {
-		WriteError(w, "Failed to write raw bytes to HTTP response")
+		WriteError(w, fmt.Sprintf("Failed to write raw bytes to HTTP response: %s", err))
 	}
 }
 
@@ -43,7 +43,7 @@ func WriteJSON(w http.ResponseWriter, output interface{}) {
 	encode := json.NewEncoder(w)
 	err := encode.Encode(output)
 	if err != nil {
-		WriteError(w, "Failed to write JSON to HTTP response")
+		WriteError(w, fmt.Sprintf("Failed to write JSON to HTTP response: %s", err))
 	}
 }
 
@@ -68,6 +68,6 @@ func WriteTemplate(w http.ResponseWriter, tmpl *template.Template, ctx interface
 	WriteDefaultHeaders(w, "text/html")
 	err := tmpl.Execute(w, ctx)
 	if err != nil {
-		WriteError(w, fmt.Sprintf("Failed to write template %s to HTTP response", tmpl.Name()))
+		WriteError(w, fmt.Sprintf("Failed to write template %s to HTTP response: %s", tmpl.Name(), err))
 	}
 }

@@ -2,7 +2,7 @@ log_level: debug
 
 appearance:
   title: "Pastebin"
-  theme: "dark"
+  theme: "light"
 
 db:
   driver: postgres

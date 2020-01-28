@@ -34,7 +34,8 @@
 }
 
 .list__element {
-  display: block;
+  display: flex;
+  flex-direction: column;
   outline: none;
   padding: 1em;
   text-decoration: none;

@@ -21,16 +21,16 @@ func main() {
 	pasteStore := model.NewPasteStore(db)
 
 	router := httprouter.New()
-	pasteView := view.NewPasteView(pasteStore)
+	editorView := view.NewEditorView(pasteStore)
+	viewerView := view.NewViewerView(pasteStore)
 	listView := view.NewListView(pasteStore)
 	errorView := view.NewErrorView()
 
 	router.GET("/favicon.ico", faviconHandler)
-	router.GET("/", pasteView.ServeEditor)
-	router.GET("/view/:id", pasteView.ServePaste)
-	router.GET("/view/:id/raw", pasteView.ServeRawPaste)
+	router.GET("/", editorView.ServeEditor)
+	router.GET("/view/:id", viewerView.ServePaste)
+	router.GET("/view/:id/raw", viewerView.ServeRawPaste)
 	router.GET("/list", listView.ServeList)
-	router.GET("/list?limit=:id", listView.ServeList)
 	router.NotFound = errorView
 
 	pasteEndPoint := api.NewPasteEndPoint(router, pasteStore)

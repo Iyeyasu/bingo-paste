@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/Iyeyasu/bingo-paste/internal/config"
 	http_util "github.com/Iyeyasu/bingo-paste/internal/util/http"
 	template_util "github.com/Iyeyasu/bingo-paste/internal/util/template"
 )
@@ -16,23 +17,28 @@ type ErrorView struct {
 
 // ErrorTemplateContext contains the status code and error description to render.
 type ErrorTemplateContext struct {
+	template_util.TemplateContext
 	StatusCode  int
 	Description string
 }
 
 // NewErrorView creates a new error view.
 func NewErrorView() *ErrorView {
-	ctx := template_util.NewTemplateContext("error")
 	view := new(ErrorView)
-	view.name = "Error"
-	view.template = template_util.PrerenderTemplate("error", ctx)
+	view.name = "error"
+	view.template = template_util.GetTemplate(view.name)
 	return view
 }
 
 // Serve sets up the HTTP request handling for the given URL.
 func (view *ErrorView) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	http_util.WriteTemplate(w, view.template, ErrorTemplateContext{
+	ctx := ErrorTemplateContext{
 		StatusCode:  http.StatusNotFound,
 		Description: "Page not found",
-	})
+		TemplateContext: template_util.TemplateContext{
+			View:   view.name,
+			Config: config.Get(),
+		},
+	}
+	http_util.WriteTemplate(w, view.template, ctx)
 }

@@ -105,9 +105,9 @@ func (store *PasteStore) SelectList(start int64, count int64) ([]*Paste, error) 
 
 // SearchList returns a list of public pastes sorted by their creation time and matching given filter.
 func (store *PasteStore) SearchList(filter string, start int64, count int64) ([]*Paste, error) {
-	log.Debugf("Searching and retrieving %d public pastes starting from number %d", count, start)
+	log.Debugf("Searching and retrieving %d public pastes matching '%s' starting from number %d", count, filter, start)
 
-	rows, err := store.selectListStmt.Query(time.Now().Unix(), filter, count, start)
+	rows, err := store.selectSearchStmt.Query(time.Now().Unix(), filter, count, start)
 	if err != nil {
 		log.Debugf("Failed to retrieve pastes: %s", err)
 		return nil, err
@@ -211,7 +211,8 @@ func createTable(db *sql.DB) {
 		is_public bool NOT NULL,
 		time_created_seconds bigint NOT NULL,
 		time_expires_seconds bigint NOT NULL,
-		language text NOT NULL
+		language text NOT NULL,
+		tsv TSVECTOR
 	)
 	`
 	_, err = db.Exec(q)
@@ -226,23 +227,6 @@ func createTable(db *sql.DB) {
 	}
 
 	q = "CREATE INDEX IF NOT EXISTS index_pastes_expires ON pastes (time_expires_seconds, is_public)"
-	_, err = db.Exec(q)
-	if err != nil {
-		log.Fatalf("Failed to create table: %s", err)
-	}
-
-	q = "ALTER TABLE pastes ADD COLUMN IF NOT EXISTS tsv tsvector"
-	_, err = db.Exec(q)
-	if err != nil {
-		log.Fatalf("Failed to create table: %s", err)
-	}
-
-	q = `
-	UPDATE pastes SET tsv =
-		setweight(to_tsvector(title), 'A') ||
-		setweight(to_tsvector(raw_content), 'B') ||
-		setweight(to_tsvector(language), 'C');
-	`
 	_, err = db.Exec(q)
 	if err != nil {
 		log.Fatalf("Failed to create table: %s", err)
@@ -290,10 +274,15 @@ func createPseudoEncrypt(db *sql.DB) {
 }
 
 func getInsertStatement(db *sql.DB) *sql.Stmt {
+	// We replace all periods with space as otherwise postgres won't recognize
+	// period as a delimiter for full text search.
 	query := `
 	INSERT INTO pastes
-	(title, raw_content, formatted_content, is_public, time_created_seconds, time_expires_seconds, language)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	(title, raw_content, formatted_content, is_public, time_created_seconds, time_expires_seconds, language, tsv)
+	VALUES ($1, $2, $3, $4, $5, $6, $7,
+		setweight(to_tsvector($1), 'A')
+		|| setweight(to_tsvector(replace($2, '.', ' ')), 'B')
+		|| setweight(to_tsvector('simple', $7), 'C'))
 	RETURNING id
 	`
 
@@ -342,7 +331,7 @@ func getSelectSearchStatement(db *sql.DB) *sql.Stmt {
 	FROM pastes
 	WHERE time_expires_seconds > $1
 	AND is_public = TRUE
-	AND tsv @@ $2
+	AND tsv @@ plainto_tsquery($2)
 	ORDER BY time_created_seconds DESC, id ASC
 	LIMIT $3 OFFSET $4
 	`

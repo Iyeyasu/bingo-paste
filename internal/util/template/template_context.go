@@ -7,6 +7,7 @@ import (
 // TemplateContext is the contex object passed to the html/template renderer.
 type TemplateContext struct {
 	View   string
+	Filter string
 	Config *config.Config
 }
 
