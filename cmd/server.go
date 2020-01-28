@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Iyeyasu/bingo-paste/internal/api"
-	"github.com/Iyeyasu/bingo-paste/internal/config"
+	"github.com/Iyeyasu/bingo-paste/internal/middleware"
 	"github.com/Iyeyasu/bingo-paste/internal/model"
 	"github.com/Iyeyasu/bingo-paste/internal/view"
 	"github.com/julienschmidt/httprouter"
@@ -12,34 +12,34 @@ import (
 )
 
 func main() {
-	log.SetLevel(config.Get().LogLevel)
-	if config.Get().LogLevel != log.InfoLevel {
-		log.SetReportCaller(true)
-	}
-
+	// Create object stores
 	db := model.NewDatabase()
 	pasteStore := model.NewPasteStore(db)
 
-	router := httprouter.New()
-	editorView := view.NewEditorView(pasteStore)
-	viewerView := view.NewViewerView(pasteStore)
-	listView := view.NewListView(pasteStore)
+	// Route API end points
+	router := new(httprouter.Router)
+	pasteEndPoint := api.NewPasteEndPoint(pasteStore)
+	// router.Handler(http.MethodGet, path.Join(pasteEndPoint.URI(), ":id"), test(pasteEndPoint.GetPaste))
+	// router.Handler(http.MethodPost, pasteEndPoint.URI(), test(pasteEndPoint.CreatePaste))
+
+	// Route views
+	editorView := view.NewEditorView()
 	errorView := view.NewErrorView()
-
-	router.GET("/favicon.ico", faviconHandler)
-	router.GET("/", editorView.ServeEditor)
-	router.GET("/view/:id", viewerView.ServePaste)
-	router.GET("/view/:id/raw", viewerView.ServeRawPaste)
-	router.GET("/list", listView.ServeList)
-	router.NotFound = errorView
-
-	pasteEndPoint := api.NewPasteEndPoint(router, pasteStore)
-	pasteEndPoint.Handle("/api/v1/paste/")
+	imageView := view.NewImageView()
+	pasteView := view.NewPasteView(pasteEndPoint)
+	router.Handler(http.MethodGet, "/", newMiddleware(editorView.ServeEditor))
+	router.Handler(http.MethodGet, "/favicon.ico", newMiddleware(imageView.ServeFavicon))
+	router.Handler(http.MethodGet, "/pastes", newMiddleware(pasteView.ServePasteList))
+	router.Handler(http.MethodGet, "/pastes/:id", newMiddleware(pasteView.ServePaste))
+	router.Handler(http.MethodGet, "/pastes/:id/raw", newMiddleware(pasteView.ServeRawPaste))
+	router.Handler(http.MethodPost, "/pastes", newMiddleware(pasteView.CreatePaste))
+	router.NotFound = newMiddleware(errorView.ServeError)
 
 	log.Fatal(http.ListenAndServe(":80", router))
 }
 
-func faviconHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	w.Header().Set("Cache-Control", "public, max-age=31536000")
-	http.ServeFile(w, r, "web/img/favicon.ico")
+func newMiddleware(handler http.HandlerFunc) http.Handler {
+	mw := middleware.NewAuthenticationMiddleware(handler)
+	mw = middleware.NewLogMiddleware(mw)
+	return mw
 }

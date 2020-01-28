@@ -9,20 +9,20 @@ import (
 	template_util "github.com/Iyeyasu/bingo-paste/internal/util/template"
 )
 
-// ErrorView handles the view for creating pastes.
+// ErrorView serves the view for showing errors.
 type ErrorView struct {
 	name     string
 	template *template.Template
 }
 
-// ErrorTemplateContext contains the status code and error description to render.
-type ErrorTemplateContext struct {
+// ErrorContext contains the context for rendering the ErrorView.
+type ErrorContext struct {
 	template_util.TemplateContext
 	StatusCode  int
 	Description string
 }
 
-// NewErrorView creates a new error view.
+// NewErrorView creates a new ErrorView.
 func NewErrorView() *ErrorView {
 	view := new(ErrorView)
 	view.name = "error"
@@ -30,9 +30,9 @@ func NewErrorView() *ErrorView {
 	return view
 }
 
-// Serve sets up the HTTP request handling for the given URL.
-func (view *ErrorView) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := ErrorTemplateContext{
+// ServeError serves the error page.
+func (view *ErrorView) ServeError(w http.ResponseWriter, r *http.Request) {
+	ctx := ErrorContext{
 		StatusCode:  http.StatusNotFound,
 		Description: "Page not found",
 		TemplateContext: template_util.TemplateContext{

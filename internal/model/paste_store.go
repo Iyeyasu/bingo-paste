@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	util "github.com/Iyeyasu/bingo-paste/internal/util/html"
@@ -43,13 +44,12 @@ func NewPasteStore(db *sql.DB) *PasteStore {
 }
 
 // Insert inserts a new paste to the database.
-func (store *PasteStore) Insert(paste *Paste) (int64, error) {
-	log.Debug("Inserting new paste")
+func (store *PasteStore) Insert(paste *Paste) (*Paste, error) {
+	log.Debug("Inserting new paste to database")
 
-	id := int64(0)
 	timeCreated := time.Now().Unix()
 	timeExpires := timeCreated + int64(paste.Duration.Seconds())
-	err := store.insertStmt.QueryRow(
+	row := store.insertStmt.QueryRow(
 		paste.Title,
 		paste.RawContent,
 		util.HighlightSyntax(paste.Language, paste.RawContent),
@@ -57,90 +57,73 @@ func (store *PasteStore) Insert(paste *Paste) (int64, error) {
 		timeCreated,
 		timeExpires,
 		paste.Language,
-	).Scan(&id)
+	)
 
-	if err != nil {
-		log.Errorf("Failed to create paste: %s", err)
-		return 0, err
-	}
-
-	return id, nil
+	return store.scanRow(row)
 }
 
 // Select returns the paste with the given id from the database.
 func (store *PasteStore) Select(id int64) (*Paste, error) {
-	log.Debugf("Retrieving paste %d", id)
+	log.Debugf("Retrieving paste %d from database", id)
 
 	row := store.selectStmt.QueryRow(id, time.Now().Unix())
 	return store.scanRow(row)
 }
 
 // SelectList returns a slice of public pastes sorted by their creation time.
-func (store *PasteStore) SelectList(start int64, count int64) ([]*Paste, error) {
-	log.Debugf("Retrieving %d public pastes starting from number %d", count, start)
+func (store *PasteStore) SelectList(limit int64, offset int64) ([]*Paste, error) {
+	log.Debugf("Retrieving %d public pastes starting from paste number %d from database", limit, offset)
 
-	rows, err := store.selectListStmt.Query(time.Now().Unix(), count, start)
+	rows, err := store.selectListStmt.Query(time.Now().Unix(), limit, offset)
 	if err != nil {
-		log.Debugf("Failed to retrieve pastes: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve pastes: %s", err)
 	}
 
-	pastes := []*Paste{}
-	defer rows.Close()
-	for rows.Next() {
-		paste, err := store.scanRow(rows)
-		if err == nil {
-			pastes = append(pastes, paste)
-		}
-	}
-
-	err = rows.Err()
-	if err != nil {
-		log.Debugf("Failed to retrieve pastes: %s", err)
-		return nil, err
-	}
-
-	return pastes, nil
+	return store.scanRows(rows)
 }
 
 // SearchList returns a list of public pastes sorted by their creation time and matching given filter.
-func (store *PasteStore) SearchList(filter string, start int64, count int64) ([]*Paste, error) {
-	log.Debugf("Searching and retrieving %d public pastes matching '%s' starting from number %d", count, filter, start)
+func (store *PasteStore) SearchList(filter string, limit int64, offset int64) ([]*Paste, error) {
+	log.Debugf("Retrieving %d public pastes starting from paste number %d and matching matching '%s' from database", limit, offset, filter)
 
-	rows, err := store.selectSearchStmt.Query(time.Now().Unix(), filter, count, start)
+	rows, err := store.selectSearchStmt.Query(time.Now().Unix(), filter, limit, offset)
 	if err != nil {
-		log.Debugf("Failed to retrieve pastes: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve pastes: %s", err)
 	}
 
-	pastes := []*Paste{}
-	defer rows.Close()
-	for rows.Next() {
-		paste, err := store.scanRow(rows)
-		if err == nil {
-			pastes = append(pastes, paste)
-		}
-	}
-
-	err = rows.Err()
-	if err != nil {
-		log.Debugf("Failed to retrieve pastes: %s", err)
-		return nil, err
-	}
-
-	return pastes, nil
+	return store.scanRows(rows)
 }
 
 // Delete deletes the paste with the given id from the database.
 func (store *PasteStore) Delete(id int64) error {
-	log.Debugf("Deleting paste %d", id)
+	log.Debugf("Deleting paste %d from database", id)
 
 	_, err := store.deleteStmt.Exec(id)
 	if err != nil {
-		log.Debugf("Failed to delete paste %d: %s", id, err)
+		return fmt.Errorf("failed to delete paste %d: %s", id, err)
 	}
 
-	return err
+	return nil
+}
+
+func (store *PasteStore) scanRows(rows *sql.Rows) ([]*Paste, error) {
+	pastes := []*Paste{}
+	defer rows.Close()
+	for rows.Next() {
+		paste, err := store.scanRow(rows)
+		if err == nil {
+			pastes = append(pastes, paste)
+		} else {
+			log.Errorf(err.Error())
+		}
+	}
+
+	err := rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan paste rows: %s", err)
+	}
+
+	return pastes, nil
 }
 
 func (store *PasteStore) scanRow(row Scannable) (*Paste, error) {
@@ -158,39 +141,38 @@ func (store *PasteStore) scanRow(row Scannable) (*Paste, error) {
 		&paste.Language)
 
 	if err != nil {
-		log.Debugf("Failed to retrieve paste: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to scan paste row: %s", err)
 	}
 
 	paste.TimeCreated = time.Unix(timeCreated, 0)
 	paste.Duration = time.Second * time.Duration(timeExpires-time.Now().Unix())
-	log.Debugf("Retrieved paste %d (expires in %s)", paste.ID, paste.Duration)
 	return paste, nil
 }
 
 func (store *PasteStore) monitorExpired() {
-	log.Info("Monitoring expired pastes")
+	log.Debug("Monitoring expired pastes")
 
-	store.deleteExpired()
 	for range time.Tick(deleteExpiredInterval) {
-		store.deleteExpired()
+		count, err := store.deleteExpired()
+		if err != nil {
+			log.Errorf(err.Error())
+		} else {
+			log.Debugf("Deleted %d expired pastes", count)
+		}
 	}
 }
 
-func (store *PasteStore) deleteExpired() {
+func (store *PasteStore) deleteExpired() (int64, error) {
 	result, err := store.deleteExpiredStmt.Exec(time.Now().Unix())
 	if err != nil {
-		log.Errorf("Failed to delete expired pastes: %s", err)
-		return
+		return 0, fmt.Errorf("failed to delete expired pastes: %s", err)
 	}
 
 	count, err := result.RowsAffected()
 	if err != nil {
-		log.Errorf("Failed to count expired pastes: %s", err)
-		return
+		return 0, fmt.Errorf("failed to count expired pastes: %s", err)
 	}
-
-	log.Infof("Deleted %d expired pastes", count)
+	return count, nil
 }
 
 func createTable(db *sql.DB) {
@@ -283,7 +265,7 @@ func getInsertStatement(db *sql.DB) *sql.Stmt {
 		setweight(to_tsvector($1), 'A')
 		|| setweight(to_tsvector(replace($2, '.', ' ')), 'B')
 		|| setweight(to_tsvector('simple', $7), 'C'))
-	RETURNING id
+	RETURNING id, title, raw_content, formatted_content, is_public, time_created_seconds, time_expires_seconds, language
 	`
 
 	stmt, err := db.Prepare(query)

@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	dbConnectionRetries   = 45
-	connectionTimeout     = 60
-	maxOpenConnections    = 20
-	maxIdleConnections    = 10
-	maxConnectionLifetime = 5 * time.Minute
+	dbConnectionRetries     = 45
+	dbConnectionTimeout     = 60
+	dbMaxOpenConnections    = 20
+	dbMaxIdleConnections    = 10
+	dbMaxConnectionLifetime = 5 * time.Minute
 )
 
 // Scannable is a common interface for sql.Row and sql.Rows.
@@ -26,16 +26,15 @@ type Scannable interface {
 	Scan(dest ...interface{}) error
 }
 
-// NewDatabase opens a new SQL connection.
+// NewDatabase returns a new SQL database connection.
 func NewDatabase() *sql.DB {
 	driver, connStr, err := getDataSource()
-
-	log.Infof("Opening %s database", driver)
-	log.Debugf("Database connection string: %s", connStr)
 	if err != nil {
 		log.Fatalf("Failed to open database: %s", err)
 	}
 
+	log.Infof("Opening %s database", driver)
+	log.Debugf("Database connection string: %s", connStr)
 	db, err := sql.Open(driver, connStr)
 	if err != nil {
 		log.Fatalf("Failed to open database: %s", err)
@@ -51,7 +50,7 @@ func NewDatabase() *sql.DB {
 }
 
 func pollDatabase(db *sql.DB) error {
-	log.Infof("Trying to connect to database for %d seconds", connectionRetries)
+	log.Infof("Trying to connect to database for %d seconds", dbConnectionRetries)
 
 	for i := 0; i <= dbConnectionRetries; i++ {
 		err := db.Ping()
@@ -69,12 +68,12 @@ func pollDatabase(db *sql.DB) error {
 func configureDatabase(db *sql.DB) {
 	log.Debug("Configuring database")
 
-	log.Debugf("Setting max open connections to %d", maxOpenConnections)
-	db.SetMaxOpenConns(maxOpenConnections)
-	log.Debugf("Setting max idle connections to %d", maxIdleConnections)
-	db.SetMaxIdleConns(maxIdleConnections)
-	log.Debugf("Setting connection max lifetime to %d", int64(maxConnectionLifetime.Seconds()))
-	db.SetConnMaxLifetime(maxConnectionLifetime)
+	log.Debugf("Setting max open connections to %d", dbMaxOpenConnections)
+	db.SetMaxOpenConns(dbMaxOpenConnections)
+	log.Debugf("Setting max idle connections to %d", dbMaxIdleConnections)
+	db.SetMaxIdleConns(dbMaxIdleConnections)
+	log.Debugf("Setting connection max lifetime to %d", int64(dbMaxConnectionLifetime.Seconds()))
+	db.SetConnMaxLifetime(dbMaxConnectionLifetime)
 }
 
 func getDataSource() (string, string, error) {
@@ -100,5 +99,5 @@ func getPostgresConnectionString() string {
 		config.Get().Database.Port,
 		config.Get().Database.Database,
 		config.Get().Database.SSL,
-		connectionTimeout)
+		dbConnectionTimeout)
 }

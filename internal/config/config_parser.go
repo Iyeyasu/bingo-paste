@@ -13,24 +13,22 @@ type configParser struct {
 	configMap map[interface{}]interface{}
 }
 
-func newConfigParser(filename string) *configParser {
+func newConfigParser(filename string) (*configParser, error) {
 	log.Infof("Reading configuration file '%s'", filename)
 
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		logError(err.Error())
-		return nil
+		return nil, fmt.Errorf("failed to read config file '%s': %s", filename, err)
 	}
 
 	parser := new(configParser)
 	parser.configMap = make(map[interface{}]interface{})
 	err = yaml.Unmarshal([]byte(data), parser.configMap)
 	if err != nil {
-		logError(err.Error())
-		return nil
+		return nil, fmt.Errorf("failed to parse config file '%s': %s", filename, err)
 	}
 
-	return parser
+	return parser, nil
 }
 
 func (parser *configParser) hasOption(name string) bool {
@@ -74,7 +72,7 @@ func (parser *configParser) getBool(name string, defaultVal bool) bool {
 	val, ok := opt.(bool)
 	if !ok {
 		logOptionError(name, fmt.Sprintf("expected bool, got %T", opt))
-		return false
+		return defaultVal
 	}
 
 	log.Tracef("Parsed field '%s: %t'", name, val)
@@ -93,7 +91,7 @@ func (parser *configParser) getInt(name string, defaultVal int) int {
 	val, ok := opt.(int)
 	if !ok {
 		logOptionError(name, fmt.Sprintf("expected int, got %T", opt))
-		return 0
+		return defaultVal
 	}
 
 	log.Tracef("Parsed field '%s: %d'", name, val)
@@ -112,7 +110,7 @@ func (parser *configParser) getStr(name string, defaultVal string) string {
 	val, ok := opt.(string)
 	if !ok {
 		logOptionError(name, fmt.Sprintf("expected string, got %T", opt))
-		return ""
+		return defaultVal
 	}
 
 	log.Tracef("Parsed field '%s: %s'", name, val)
@@ -131,7 +129,7 @@ func (parser *configParser) getIntArray(name string, defaultVal []int) []int {
 	arr, ok := opt.([]interface{})
 	if !ok {
 		logOptionError(name, fmt.Sprintf("expected []interface{}, got %T", opt))
-		return nil
+		return defaultVal
 	}
 
 	val := make([]int, len(arr))
@@ -139,7 +137,7 @@ func (parser *configParser) getIntArray(name string, defaultVal []int) []int {
 		val[i], ok = arr[i].(int)
 		if !ok {
 			logOptionError(fmt.Sprintf("%s[%d]", name, i), fmt.Sprintf("expected int, got %T", arr[i]))
-			return nil
+			return defaultVal
 		}
 	}
 
@@ -159,7 +157,7 @@ func (parser *configParser) getStrArray(name string, defaultVal []string) []stri
 	arr, ok := opt.([]interface{})
 	if !ok {
 		logOptionError(name, fmt.Sprintf("expected []interface{}, got %T", opt))
-		return nil
+		return defaultVal
 	}
 
 	val := make([]string, len(arr))
@@ -167,16 +165,12 @@ func (parser *configParser) getStrArray(name string, defaultVal []string) []stri
 		val[i], ok = arr[i].(string)
 		if !ok {
 			logOptionError(fmt.Sprintf("%s[%d]", name, i), fmt.Sprintf("expected string, got %T", arr[i]))
-			return nil
+			return defaultVal
 		}
 	}
 
 	log.Tracef("Parsed field '%s: %v'", name, val)
 	return val
-}
-
-func logError(msg string) {
-	log.Fatalf("Failed to parse configuration file: %s", msg)
 }
 
 func logOptionError(name string, msg string) {

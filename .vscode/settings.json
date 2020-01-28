@@ -6,6 +6,7 @@
         "Infoln",
         "Tokenise",
         "Tracef",
+        "Traceln",
         "Warnf",
         "htmlf",
         "tmpl"

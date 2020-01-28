@@ -25,16 +25,6 @@ func RenderTemplate(name string, ctx interface{}) string {
 	return html_util.Minify(builder.String())
 }
 
-// PrerenderTemplate renders the template with the given name, converting the
-// resulting string into an new template. Useful when you have some parts of
-// the page that are static and don't want to render them every time.
-func PrerenderTemplate(name string, ctx interface{}) *template.Template {
-	log.Debugf("Prerendering template '%s'", name)
-
-	render := RenderTemplate(name, ctx)
-	return template.Must(newTemplate().Parse(render))
-}
-
 // GetTemplate returns the template with the given name.
 func GetTemplate(name string) *template.Template {
 	tmpl := newTemplate()

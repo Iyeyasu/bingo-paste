@@ -4,32 +4,42 @@ import (
 	"net/http"
 
 	"github.com/Iyeyasu/bingo-paste/internal/config"
-	"github.com/Iyeyasu/bingo-paste/internal/model"
 	http_util "github.com/Iyeyasu/bingo-paste/internal/util/http"
 	template_util "github.com/Iyeyasu/bingo-paste/internal/util/template"
-	"github.com/julienschmidt/httprouter"
 )
 
-// EditorView .
+// EditorView serves the view for creating and viewing pastes.
 type EditorView struct {
-	name string
-	html []byte
+	name       string
+	editorHTML []byte
 }
 
-// NewEditorView .
-func NewEditorView(store *model.PasteStore) *EditorView {
+// EditorContext contains the context for rendering the editor.
+type EditorContext struct {
+	template_util.TemplateContext
+	URI string
+}
+
+// NewEditorView creates a new EditorView.
+func NewEditorView() *EditorView {
 	view := new(EditorView)
 	view.name = "editor"
-
-	ctx := template_util.TemplateContext{
-		View:   view.name,
-		Config: config.Get(),
-	}
-	view.html = []byte(template_util.RenderTemplate(view.name, ctx))
+	view.editorHTML = view.getEditorHTML()
 	return view
 }
 
-// ServeEditor .
-func (view *EditorView) ServeEditor(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	http_util.WriteHTML(w, view.html)
+// ServeEditor serves the editor for creating pastes.
+func (view *EditorView) ServeEditor(w http.ResponseWriter, r *http.Request) {
+	http_util.WriteHTML(w, view.editorHTML)
+}
+
+func (view *EditorView) getEditorHTML() []byte {
+	ctx := EditorContext{
+		URI: "/pastes",
+		TemplateContext: template_util.TemplateContext{
+			View:   view.name,
+			Config: config.Get(),
+		},
+	}
+	return []byte(template_util.RenderTemplate(view.name, ctx))
 }

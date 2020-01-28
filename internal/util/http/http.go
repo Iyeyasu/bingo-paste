@@ -5,23 +5,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strconv"
 
-	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 )
-
-// Redirect redirects to the given URL.
-func Redirect(w http.ResponseWriter, req *http.Request, url string, code int) {
-	log.Debugf("Redirecting from %s to %s", req.URL, url)
-	http.Redirect(w, req, url, code)
-}
-
-// ParseID parses ID from the given router params.
-func ParseID(params httprouter.Params) (int64, error) {
-	log.Debug("Parsing ID")
-	return strconv.ParseInt(params.ByName("id"), 10, 64)
-}
 
 // WriteDefaultHeaders writes default headers to the HTTP response.
 func WriteDefaultHeaders(w http.ResponseWriter, contentType string) {
@@ -59,8 +45,8 @@ func WriteHTML(w http.ResponseWriter, output []byte) {
 
 // WriteError writes an error to the HTTP response.
 func WriteError(w http.ResponseWriter, msg string) {
-	log.Debug(msg)
-	http.Error(w, msg, http.StatusNotFound)
+	log.Error(msg)
+	http.Error(w, msg, http.StatusInternalServerError)
 }
 
 // WriteTemplate writes the given template to the HTTP response.

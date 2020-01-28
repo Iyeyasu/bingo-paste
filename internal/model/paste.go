@@ -1,6 +1,8 @@
 package model
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"time"
 )
@@ -19,10 +21,18 @@ type Paste struct {
 
 // MarshalBinary converts the paste to a binary array.
 func (paste *Paste) MarshalBinary() ([]byte, error) {
-	return json.Marshal(paste)
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(paste); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 // UnmarshalBinary converts a binary array to paste.
 func (paste *Paste) UnmarshalBinary(data []byte) error {
+	reader := bytes.NewReader(data)
+    if err := gob.NewDecoder(reader).Decode(paste); err != nil {
+        return err
+    }
 	return json.Unmarshal(data, paste)
 }

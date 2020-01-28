@@ -9,7 +9,7 @@
         {{ end }}
 
         {{ range .Pastes }}
-        <a class="list__element" href="/view/{{ .ID }}">
+        <a class="list__element" href="/pastes/{{ .ID }}">
             <div class="list__element__body">
                 <div class="list__element__title">{{ .Title }}</div>
                 {{ if ne .Language "plaintext" }}
