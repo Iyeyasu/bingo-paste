@@ -12,27 +12,33 @@ import (
 )
 
 func main() {
-	// Create object stores
 	db := model.NewDatabase()
-	pasteStore := model.NewPasteStore(db)
-
-	// Route API end points
 	router := new(httprouter.Router)
-	pasteEndPoint := api.NewPasteEndPoint(pasteStore)
-	// router.Handler(http.MethodGet, path.Join(pasteEndPoint.URI(), ":id"), test(pasteEndPoint.GetPaste))
-	// router.Handler(http.MethodPost, pasteEndPoint.URI(), test(pasteEndPoint.CreatePaste))
 
-	// Route views
-	editorView := view.NewEditorView()
-	errorView := view.NewErrorView()
-	imageView := view.NewImageView()
+	// Paste view and end point
+	pasteStore := model.NewPasteStore(db)
+	pasteEndPoint := api.NewPasteEndPoint(pasteStore)
 	pasteView := view.NewPasteView(pasteEndPoint)
-	router.Handler(http.MethodGet, "/", newMiddleware(editorView.ServeEditor))
-	router.Handler(http.MethodGet, "/favicon.ico", newMiddleware(imageView.ServeFavicon))
+	router.Handler(http.MethodGet, "/", newMiddleware(pasteView.ServePasteEditor))
 	router.Handler(http.MethodGet, "/pastes", newMiddleware(pasteView.ServePasteList))
 	router.Handler(http.MethodGet, "/pastes/:id", newMiddleware(pasteView.ServePaste))
 	router.Handler(http.MethodGet, "/pastes/:id/raw", newMiddleware(pasteView.ServeRawPaste))
 	router.Handler(http.MethodPost, "/pastes", newMiddleware(pasteView.CreatePaste))
+
+	// User view and end point
+	userStore := model.NewUserStore(db)
+	userEndPoint := api.NewUserEndPoint(userStore)
+	userView := view.NewUserView(userEndPoint)
+	router.Handler(http.MethodGet, "/users", newMiddleware(userView.ServeUserList))
+	router.Handler(http.MethodGet, "/users/:id", newMiddleware(userView.ServeUserEditor))
+	router.Handler(http.MethodPost, "/users/create", newMiddleware(userView.CreateUser))
+	router.Handler(http.MethodPost, "/users/update/:id", newMiddleware(userView.UpdateUser))
+	router.Handler(http.MethodPost, "/users/delete/:id", newMiddleware(userView.DeleteUser))
+
+	// Misc views
+	imageView := view.NewImageView()
+	errorView := view.NewErrorView()
+	router.Handler(http.MethodGet, "/favicon.ico", newMiddleware(imageView.ServeFavicon))
 	router.NotFound = newMiddleware(errorView.ServeError)
 
 	log.Fatal(http.ListenAndServe(":80", router))

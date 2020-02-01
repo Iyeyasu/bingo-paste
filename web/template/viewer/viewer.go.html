@@ -1,8 +1,0 @@
-{{ define "content" }}
-
-<div class="content">
-    <input class="content__title" type="text" name="title" placeholder="Untitled" value="{{ .Paste.Title }}" readonly>
-    <div class="content__body">{{ unescape .Paste.FormattedContent }}</div>
-</div>
-
-{{ end }}

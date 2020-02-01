@@ -1,0 +1,16 @@
+{{ define "content" }}
+
+<div class="content">
+    <div class="card card--grow">
+        <div class="card__header">
+            {{ if .Paste.Title }}
+            <div class="card__title">{{ .Paste.Title }}</div>
+            {{ else }}
+            <div class="card__title">Untitled</div>
+            {{ end }}
+        </div>
+        <div class="card__body">{{ unescape .Paste.FormattedContent }}</div>
+    </div>
+</div>
+
+{{ end }}

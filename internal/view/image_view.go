@@ -6,13 +6,11 @@ import (
 
 // ImageView serves images.
 type ImageView struct {
-	name string
 }
 
 // NewImageView creates a new ImageView.
 func NewImageView() *ImageView {
 	view := new(ImageView)
-	view.name = "image"
 	return view
 }
 

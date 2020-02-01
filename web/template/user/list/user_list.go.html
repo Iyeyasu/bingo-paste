@@ -1,0 +1,28 @@
+{{ define "content" }}
+
+<div class="content">
+    <div class="card card--grow">
+        <div class="card__header">
+            <div class="card__title">Users</div>
+            <a class="card__control card__button" href="/users/create">Add User</a>
+        </div>
+
+        <div class="card__body list">
+            {{ if (len .Users) }}
+                {{ range .Users }}
+                <a class="list__element" href="/users/{{ .ID }}">
+                    <div class="list__element__body">
+                        <div class="list__element__title">{{ .Name }}</div>
+                        <div class="list__element__label">{{ .Role }}</div>
+                    </div>
+                    <div class="list__element__footnote">{{ .Mail }}</div>
+                </a>
+                {{ end }}
+            {{ else }}
+                <div class="list__empty">No users found</div>
+            {{ end }}
+        </div>
+    </div>
+</div>
+
+{{ end }}

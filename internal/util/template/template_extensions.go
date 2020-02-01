@@ -11,26 +11,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// RenderTemplate renders the template with the given name, converting it to a string.
-func RenderTemplate(name string, ctx interface{}) string {
-	log.Debugf("Rendering template '%s'", name)
+// RenderTemplate renders the given template to a string.
+func RenderTemplate(tmpl *template.Template, ctx interface{}) string {
+	log.Debugf("Rendering template '%s'", tmpl.Name)
 
-	tmpl := GetTemplate(name)
 	builder := new(strings.Builder)
 	err := tmpl.Execute(builder, ctx)
 	if err != nil {
-		log.Fatalf("Failed to render template '%s': %s", name, err.Error())
+		log.Fatalf("Failed to render template '%s': %s", tmpl.Name, err.Error())
 	}
 
 	return html_util.Minify(builder.String())
 }
 
-// GetTemplate returns the template with the given name.
-func GetTemplate(name string) *template.Template {
+// GetTemplate returns the template with the given name and globs.
+func GetTemplate(name string, paths ...string) *template.Template {
 	tmpl := newTemplate()
-	tmpl = template.Must(tmpl.ParseGlob("web/css/*.css"))
-	tmpl = template.Must(tmpl.ParseGlob("web/template/*.go.html"))
-	tmpl = template.Must(tmpl.ParseGlob(fmt.Sprintf("web/template/%s/*.go.html", name)))
+	for _, path := range paths {
+		tmpl = template.Must(tmpl.ParseGlob(path))
+	}
 	return tmpl
 }
 

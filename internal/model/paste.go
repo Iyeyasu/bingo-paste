@@ -10,12 +10,12 @@ import (
 // Paste represents the paste contents and surrounding metadata.
 type Paste struct {
 	ID               int64
+	TimeCreated      time.Time
 	Title            string
 	RawContent       string
 	FormattedContent string
 	IsPublic         bool
 	Language         string
-	TimeCreated      time.Time
 	Duration         time.Duration
 }
 
@@ -31,8 +31,8 @@ func (paste *Paste) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary converts a binary array to paste.
 func (paste *Paste) UnmarshalBinary(data []byte) error {
 	reader := bytes.NewReader(data)
-    if err := gob.NewDecoder(reader).Decode(paste); err != nil {
-        return err
-    }
+	if err := gob.NewDecoder(reader).Decode(paste); err != nil {
+		return err
+	}
 	return json.Unmarshal(data, paste)
 }

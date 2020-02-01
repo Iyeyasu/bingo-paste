@@ -1,0 +1,33 @@
+{{ define "content" }}
+
+<div class="content">
+    <div class="card card--grow">
+        <div class="card__header">
+            <div class="card__title">Pastes</div>
+        </div>
+        <div class="card__body list">
+            {{ if (len .Pastes) }}
+                {{ range .Pastes }}
+                <a class="list__element" href="/pastes/{{ .ID }}">
+                    <div class="list__element__body">
+                        {{ if .Title }}
+                        <div class="list__element__title">{{ .Title }}</div>
+                        {{ else }}
+                        <div class="list__element__title">Untitled</div>
+                        {{ end }}
+
+                        {{ if ne .Language "plaintext" }}
+                        <div class="list__element__label">{{ .Language }}</div>
+                        {{ end }}
+                    </div>
+                    <div class="list__element__footnote">{{ formatPastDate .TimeCreated }}</div>
+                </a>
+                {{ end }}
+            {{ else }}
+                <div class="list__empty">No pastes found</div>
+            {{ end }}
+        </div>
+    </div>
+</div>
+
+{{ end }}

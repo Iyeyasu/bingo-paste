@@ -1,32 +1,17 @@
-:root {
-  --border-label: #9ea2ae;
-}
-
-[data-theme="dark"] {
-  --border-label: #333333;
-}
-
-.content > .list {
-  font-family: sans-serif;
+.list__body {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 3em 3.8em;
-}
-
-.list__title {
-  font-size: 1.6em;
-  padding-left: 0.2em;
-  margin-bottom: 1.4em;
-  align-self: flex-start
+  justify-content: center;
+  flex-grow: 1;
 }
 
 .list__empty {
   display: flex;
   flex-grow: 1;
-  align-items: center;
-  font-size: 1.2em;
+  font-size: 1rem;
   color: var(--color-text-body-disabled);
+  align-self: center;
+  align-items: center;
 }
 
 .list__element:first-of-type {
@@ -37,40 +22,40 @@
   display: flex;
   flex-direction: column;
   outline: none;
-  padding: 1em;
+  padding: 1rem;
   text-decoration: none;
-  border: solid 1px var(--color-border-body);
+  border: solid 1px var(--color-bg-medium);
   border-width: 0 0 1px 0;
   color: var(--color-text-body);
   -webkit-transition: background-color 100ms linear;
   -ms-transition: background-color 100ms linear;
   transition: background-color 100ms linear;
-  align-self: stretch
 }
 
 .list__element:hover {
-  background-color: var(--color-border-body);
+  background-color: var(--color-bg-medium);
 }
 
 .list__element .list__element__body {
   display: flex;
-  align-items: center;
 }
 
 .list__element .list__element__title {
-  font-size: 1.3em;
+  font-size: 1rem;
 }
 
 .list__element .list__element__label {
-  align-self: flex-start;
-  margin-left: 1.2em;
-  background-color: var(--color-bg-medium);
-  padding: 0.1em 0.3em;
-  border-radius: 0.3em;
-  border: solid 1px var(--border-label);
-  font-size: 0.9em;
+  align-self: center;
+  margin-left: 1.2rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--color-text-body-light);
+  border: solid 1px var(--color-border-body);
 }
 
 .list__element .list__element__footnote {
-  margin-top: 0.4em;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--color-text-body-light)
 }

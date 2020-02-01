@@ -66,7 +66,7 @@ func (endPoint *PasteEndPoint) GetPaste(r *http.Request) (*model.Paste, error) {
 		return nil, fmt.Errorf("failed to retrieve paste: %s", err)
 	}
 
-	return endPoint.store.Select(id)
+	return endPoint.store.Get(id)
 }
 
 // GetPastes returns a range of pastes.
@@ -89,9 +89,9 @@ func (endPoint *PasteEndPoint) GetPastes(r *http.Request) ([]*model.Paste, error
 	}
 
 	if searchParam == "" {
-		return endPoint.store.SelectList(limit, offset)
+		return endPoint.store.GetList(limit, offset)
 	}
-	return endPoint.store.SearchList(searchParam, limit, offset)
+	return endPoint.store.Search(searchParam, limit, offset)
 }
 
 func decodePaste(r *http.Request) (*model.Paste, error) {
