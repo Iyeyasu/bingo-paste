@@ -6,7 +6,7 @@ import (
 	"net/http/httputil"
 
 	util "github.com/Iyeyasu/bingo-paste/internal/util/http"
-	log "github.com/sirupsen/logrus"
+	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
 
 // LogMiddleware logs all incoming HTTP requests.

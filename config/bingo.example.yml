@@ -1,4 +1,4 @@
-log_level: debug
+log_level: trace
 
 appearance:
   title: "Pastebin"
@@ -13,12 +13,21 @@ db:
   password: bingo
   ssl: disable
 
+auth:
+  type: standard
+  disable_registration: true
+  session:
+    name: session_bingo
+    timeout: 180
+    idle_timout: 20
+    secure_cookie: true
+
 extensions:
-  visibility:
+  expiry:
     enabled: true
 
   highlight:
     enabled: true
 
-  expiry:
+  visibility:
     enabled: true

@@ -1,0 +1,38 @@
+.searchbar {
+  display: flex;
+  margin: 0;
+  width: 6rem;
+  height: 2.1rem;
+  flex-basis: 20rem;
+  border-radius: 2rem;
+  box-shadow: 0 1px 6px -1px rgba(0,0,0,.3);
+}
+
+.searchbar button,
+.searchbar input {
+  height: 100%;
+  color: var(--color-text-body);
+  background-color: var(--color-bg-medium);
+  border: none;
+}
+
+.searchbar input {
+  flex-grow: 1;
+  border-radius: 0 2rem 2rem 0;
+}
+
+.searchbar button {
+  flex-basis: 2.2rem;
+  border-radius: 2rem 0 0 2rem;
+  padding: 0;
+}
+
+.searchbar button:-moz-focusring {
+    color: transparent;
+}
+
+.searchbar .searchbar__icon {
+  fill: var(--color-text-body);
+  width: 1rem;
+  margin-top: 0.1rem;
+}

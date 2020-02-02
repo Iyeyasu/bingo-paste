@@ -1,0 +1,14 @@
+.error {
+  align-items: center;
+  justify-content: center;
+}
+
+.error .error__status-code {
+  font-family: monospace;
+  font-size: 12rem;
+}
+
+.error .error__description {
+  font-size: 1.6rem;
+  padding-bottom: 5%;
+}

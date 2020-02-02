@@ -1,0 +1,53 @@
+:root {
+  --color-bg-darker: #1b1d24;
+  --color-bg-dark: #d5d5d5;
+  --color-bg-medium:  #ececee;
+  --color-bg-light:  #fafafa;
+
+  --color-border-body: #d1d1d1;
+
+  --color-text-body: #1b1d24;
+  --color-text-body-light: #666666;
+  --color-text-body-disabled: #9da1aa;
+  --color-text-header:  #e8ecee;
+  --color-text-header-disabled: #9da1aa;
+}
+
+[data-theme="dark"] {
+  --color-bg-darker: #14161b;
+  --color-bg-dark: #14161b;
+  --color-bg-medium: #1b1d24;
+  --color-bg-light: #22252c;
+
+  --color-border-body:#383b44;
+
+  --color-text-body:  #c6cbcf;
+  --color-text-body-disabled: #757880;
+  --color-text-header:  #c6cbcf;
+  --color-text-header-disabled: #757880;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  font-family: sans;
+  font-size: 16px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  color: var(--color-text-body);
+  background-color: var(--color-bg-medium);
+}
+
+.content {
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+  overflow: auto;
+}
+
+{{ template "header.css" }}
+{{ template "searchbar.css" }}
+{{ template "card.css" }}

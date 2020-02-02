@@ -4,6 +4,7 @@
         "Errorln",
         "Infof",
         "Infoln",
+        "Logln",
         "Tokenise",
         "Tracef",
         "Traceln",

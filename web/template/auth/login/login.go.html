@@ -1,0 +1,32 @@
+{{ define "content" }}
+
+<div class="content">
+
+    <form id="login-form" class="card card--compact" action="/login" method="POST">
+        <div class="card__header">
+            <div class="card__title">Log In</div>
+        </div>
+
+        <div class="card__body">
+            <div class="card__field">
+                <div class="card__field__title card__field__title--small">Username</div>
+                <div class="card__field__body">
+                    <input class="card__input" type="text" name="username" required>
+                </div>
+            </div>
+
+            <div class="card__field">
+                <div class="card__field__title card__field__title--small">Password</div>
+                <div class="card__field__body">
+                    <input class="card__input" type="password" name="password" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="card__footer">
+            <button type="submit" class="card__control card__button card__button--primary">Log In</button>
+        </div>
+    </form>
+</div>
+
+{{ end }}

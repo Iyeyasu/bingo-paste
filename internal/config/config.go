@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
 
 var (

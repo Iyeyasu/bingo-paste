@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 	"github.com/alecthomas/chroma/lexers"
-	log "github.com/sirupsen/logrus"
 )
 
 var (

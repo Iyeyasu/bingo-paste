@@ -1,0 +1,111 @@
+.header {
+  min-height: 4rem;
+  padding: 0rem 0.5rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--color-text-header);
+  background-color: var(--color-bg-darker);
+}
+
+.header__left,
+.header__right {
+  display: flex;
+  flex-grow: 1;
+  flex-basis: 20rem;
+  align-items: center;
+}
+
+.header__left {
+  padding-left: 1rem;
+  justify-content: flex-start;
+}
+
+.header__right {
+  padding-right: 1rem;
+  justify-content: flex-end;
+}
+
+.header__middle {
+  flex-basis: 50rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header__middle:first-child {
+  margin-left: 0;
+}
+
+.header__middle:last-child {
+  margin-right: 0;
+}
+
+.header__home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  outline: none;
+}
+
+.header__icon {
+  width: 1.8rem;
+  fill: var(--color-text-header);
+  stroke: var(--color-text-header);
+}
+
+.header__title {
+  margin-left: 0.6rem;
+  font-size: 1.3rem;
+  color: var(--color-text-header);
+}
+
+.header__link {
+  display: flex;
+  font-size: 1.1rem;
+  margin: 0 1rem;
+  color: var(--color-text-header-disabled);
+  background-color: transparent;
+  padding: 0;
+  border: none;
+  text-decoration: none;
+  -webkit-transition: color 120ms linear;
+  -ms-transition: color 120ms linear;
+  transition: color 120ms linear;
+}
+
+.header__link:hover,
+.header__link--selected {
+  color: var(--color-text-header);
+}
+
+.header__link__icon {
+  margin-right: 0.4rem;
+  width: 0.9rem;
+  fill: var(--color-text-header-disabled);
+  -webkit-transition: fill 120ms linear;
+  -ms-transition: fill 120ms linear;
+  transition: fill 120ms linear;
+}
+
+.header__link:hover > .header__link__icon,
+.header__link--selected > .header__link__icon {
+  fill: var(--color-text-header);
+}
+
+.header__link__icon--browse {
+  width: 0.8rem;
+  margin-top: 0.05rem;
+}
+
+.header__link__icon--users {
+  width: 1rem;
+  margin-top: 0.1rem;
+}
+
+.header__link__icon--logout {
+  margin-top: 0.1rem;
+}

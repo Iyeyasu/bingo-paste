@@ -9,13 +9,12 @@ var (
 )
 
 // HashPassword creates a bcrypt hash of the given password.
-func HashPassword(password []byte) ([]byte, error) {
-	bytes, err := bcrypt.GenerateFromPassword(password, passwordIterations)
-	return bytes, err
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), passwordIterations)
+	return string(bytes), err
 }
 
 // CheckPasswordHash checks if the given password matches the hash.
-func CheckPasswordHash(password []byte, hash []byte) bool {
-	err := bcrypt.CompareHashAndPassword(hash, password)
-	return err == nil
+func CheckPasswordHash(password string, hash string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 }

@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 	"gopkg.in/yaml.v2"
 )
 

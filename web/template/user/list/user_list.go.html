@@ -10,12 +10,12 @@
         <div class="card__body list">
             {{ if (len .Users) }}
                 {{ range .Users }}
-                <a class="list__element" href="/users/{{ .ID }}">
+                <a class="list__element" href="/users/edit/{{ .ID }}">
                     <div class="list__element__body">
                         <div class="list__element__title">{{ .Name }}</div>
                         <div class="list__element__label">{{ .Role }}</div>
                     </div>
-                    <div class="list__element__footnote">{{ .Mail }}</div>
+                    <div class="list__element__footnote">{{ .Email }}</div>
                 </a>
                 {{ end }}
             {{ else }}
