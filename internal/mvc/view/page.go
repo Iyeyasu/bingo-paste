@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	fmt_util "github.com/Iyeyasu/bingo-paste/internal/util/fmt"
-	http_util "github.com/Iyeyasu/bingo-paste/internal/util/http"
+	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
+	"github.com/Iyeyasu/bingo-paste/internal/util/fmtutil"
 	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
 
@@ -27,7 +27,7 @@ func NewPage(name string, paths []string) *Page {
 
 // Render renders the page as a HTTP response using the given rendering context.
 func (page *Page) Render(w http.ResponseWriter, ctx interface{}) {
-	http_util.WriteTemplate(w, page.Template, ctx)
+	httpext.WriteTemplate(w, page.Template, ctx)
 }
 
 func newTemplate(paths []string) *template.Template {
@@ -63,7 +63,7 @@ func formatExpiry(duration time.Duration, limit int) string {
 	if duration <= 0 {
 		result = "Read Once"
 	} else {
-		result = fmt_util.FormatDuration(duration, limit)
+		result = fmtutil.FormatDuration(duration, limit)
 	}
 
 	log.Tracef("Template Function: formatted expiry duration %d -> %s", duration, result)
@@ -71,7 +71,7 @@ func formatExpiry(duration time.Duration, limit int) string {
 }
 
 func formatPastDate(date time.Time) string {
-	result := fmt.Sprintf("%s ago", fmt_util.FormatDuration(time.Now().Sub(date), 1))
+	result := fmt.Sprintf("%s ago", fmtutil.FormatDuration(time.Now().Sub(date), 1))
 	log.Tracef("Template Function: formatted past date %s", result)
 	return result
 }

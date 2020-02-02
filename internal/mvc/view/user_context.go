@@ -2,19 +2,18 @@ package view
 
 import (
 	"github.com/Iyeyasu/bingo-paste/internal/config"
-	model "github.com/Iyeyasu/bingo-paste/internal/mvc/model/user"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
 )
 
 // UserEditorContext represents a rendering context for the User Editor page.
 type UserEditorContext struct {
-	view.PageContext
+	PageContext
 	User *model.User
 }
 
 // UserListContext represents a rendering context for the User List page.
 type UserListContext struct {
-	view.PageContext
+	PageContext
 	Users []*model.User
 }
 
@@ -22,7 +21,7 @@ type UserListContext struct {
 func (v *UserView) NewUserEditorContext(user *model.User) UserEditorContext {
 	return UserEditorContext{
 		User: user,
-		PageContext: view.PageContext{
+		PageContext: PageContext{
 			Page:   v.Edit,
 			Config: config.Get(),
 		},
@@ -33,7 +32,7 @@ func (v *UserView) NewUserEditorContext(user *model.User) UserEditorContext {
 func (v *UserView) NewUserListContext(users []*model.User) UserListContext {
 	return UserListContext{
 		Users: users,
-		PageContext: view.PageContext{
+		PageContext: PageContext{
 			Page:   v.List,
 			Config: config.Get(),
 		},

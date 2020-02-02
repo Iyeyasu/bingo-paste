@@ -1,13 +1,9 @@
 package view
 
-import (
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
-)
-
 // UserView represents the view used to render users.
 type UserView struct {
-	Edit *view.Page
-	List *view.Page
+	Edit *Page
+	List *Page
 }
 
 // NewUserView creates a new UserView.
@@ -25,7 +21,7 @@ func NewUserView() *UserView {
 	}
 
 	v := new(UserView)
-	v.Edit = view.NewPage("User Editor", editorPaths)
-	v.List = view.NewPage("User List", listPaths)
+	v.Edit = NewPage("Edit User", editorPaths)
+	v.List = NewPage("List Users", listPaths)
 	return v
 }

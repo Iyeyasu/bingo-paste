@@ -1,13 +1,9 @@
 package view
 
-import (
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
-)
-
 // AuthView represents the view used to render errors.
 type AuthView struct {
-	Login    *view.Page
-	Register *view.Page
+	Login    *Page
+	Register *Page
 }
 
 // NewAuthView creates a new AuthView.
@@ -25,7 +21,7 @@ func NewAuthView() *AuthView {
 	}
 
 	v := new(AuthView)
-	v.Login = view.NewPage("Login", loginPaths)
-	v.Register = view.NewPage("Register", registerPaths)
+	v.Login = NewPage("Login", loginPaths)
+	v.Register = NewPage("Register", registerPaths)
 	return v
 }

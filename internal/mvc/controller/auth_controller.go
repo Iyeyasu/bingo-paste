@@ -8,10 +8,10 @@ import (
 	"net/url"
 	"strings"
 
-	model "github.com/Iyeyasu/bingo-paste/internal/mvc/model/user"
-	view "github.com/Iyeyasu/bingo-paste/internal/mvc/view/auth"
-	"github.com/Iyeyasu/bingo-paste/internal/util"
-	http_util "github.com/Iyeyasu/bingo-paste/internal/util/http"
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
+	"github.com/Iyeyasu/bingo-paste/internal/util/auth"
+	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
 	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
 
@@ -47,13 +47,13 @@ func (ctrl *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to parse login info:", err))
+		httpext.WriteError(w, fmt.Sprintln("failed to parse login info:", err))
 		return
 	}
 
 	values, err := url.ParseQuery(string(body))
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to parse login info:", err))
+		httpext.WriteError(w, fmt.Sprintln("failed to parse login info:", err))
 		return
 	}
 
@@ -64,13 +64,13 @@ func (ctrl *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ctrl.store.FindByName(username)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to login user:", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to login user:", err.Error()))
 		return
 	}
 
-	err = util.CheckPasswordHash(password, user.PasswordHash)
+	err = auth.CheckPasswordHash(password, user.PasswordHash)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to login user:", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to login user:", err.Error()))
 		return
 	}
 
@@ -88,13 +88,13 @@ func (ctrl *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to parse registering info:", err))
+		httpext.WriteError(w, fmt.Sprintln("failed to parse registering info:", err))
 		return
 	}
 
 	values, err := url.ParseQuery(string(body))
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to parse registering info:", err))
+		httpext.WriteError(w, fmt.Sprintln("failed to parse registering info:", err))
 		return
 	}
 
@@ -108,7 +108,7 @@ func (ctrl *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	log.Tracef("Registering password '%s' ('%s')", password, passwordCheck)
 
 	if password != passwordCheck {
-		http_util.WriteError(w, fmt.Sprint("failed to register user: passwords don't match"))
+		httpext.WriteError(w, fmt.Sprint("failed to register user: passwords don't match"))
 		return
 	}
 
@@ -124,7 +124,7 @@ func (ctrl *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 
 	_, err = ctrl.store.Insert(&template)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to create user", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to create user", err.Error()))
 		return
 	}
 

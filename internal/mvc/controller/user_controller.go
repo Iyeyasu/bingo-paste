@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	model "github.com/Iyeyasu/bingo-paste/internal/mvc/model/user"
-	view "github.com/Iyeyasu/bingo-paste/internal/mvc/view/user"
-	http_util "github.com/Iyeyasu/bingo-paste/internal/util/http"
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
+	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
 )
 
 // UserController serves the view for creating and controllering users.
@@ -36,15 +36,15 @@ func (ctrl *UserController) ServeCreatePage(w http.ResponseWriter, r *http.Reque
 
 // ServeEditPage serves the view for editing and creating a user.
 func (ctrl *UserController) ServeEditPage(w http.ResponseWriter, r *http.Request) {
-	id, err := http_util.ParseID(r)
+	id, err := httpext.ParseID(r)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to read user:", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to read user:", err.Error()))
 		return
 	}
 
 	user, err := ctrl.store.FindByID(id)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to read user:", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to read user:", err.Error()))
 		return
 	}
 
@@ -54,9 +54,9 @@ func (ctrl *UserController) ServeEditPage(w http.ResponseWriter, r *http.Request
 
 // ServeListPage serves the view for viewing a list of users.
 func (ctrl *UserController) ServeListPage(w http.ResponseWriter, r *http.Request) {
-	users, err := ctrl.store.FindRange(http_util.ParseRange(r))
+	users, err := ctrl.store.FindRange(httpext.ParseRange(r))
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to read user list", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to read user list", err.Error()))
 		return
 	}
 
@@ -68,13 +68,13 @@ func (ctrl *UserController) ServeListPage(w http.ResponseWriter, r *http.Request
 func (ctrl *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 	template, err := ctrl.parseUserTemplate(r)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to create user", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to create user", err.Error()))
 		return
 	}
 
 	_, err = ctrl.store.Insert(template)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to create user", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to create user", err.Error()))
 		return
 	}
 
@@ -83,22 +83,22 @@ func (ctrl *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 // UpdateUser updates an existing user.
 func (ctrl *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	id, err := http_util.ParseID(r)
+	id, err := httpext.ParseID(r)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to update user", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to update user", err.Error()))
 		return
 	}
 
 	template, err := ctrl.parseUserTemplate(r)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to update user", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to update user", err.Error()))
 		return
 	}
 	template.ID = sql.NullInt64{Int64: id, Valid: true}
 
 	_, err = ctrl.store.Update(template)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to update user", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to update user", err.Error()))
 		return
 	}
 
@@ -107,15 +107,15 @@ func (ctrl *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 // DeleteUser deletes an existing user.
 func (ctrl *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	id, err := http_util.ParseID(r)
+	id, err := httpext.ParseID(r)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to delete user:", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to delete user:", err.Error()))
 		return
 	}
 
 	err = ctrl.store.Delete(id)
 	if err != nil {
-		http_util.WriteError(w, fmt.Sprintln("failed to delete user:", err.Error()))
+		httpext.WriteError(w, fmt.Sprintln("failed to delete user:", err.Error()))
 		return
 	}
 

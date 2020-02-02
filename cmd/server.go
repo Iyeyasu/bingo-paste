@@ -2,19 +2,12 @@ package main
 
 import (
 	"net/http"
-	"regexp"
 
-	"github.com/Iyeyasu/bingo-paste/internal/middleware"
+	"github.com/Iyeyasu/bingo-paste/internal/http/httpmw"
 	"github.com/Iyeyasu/bingo-paste/internal/mvc/controller"
 	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
-	paste "github.com/Iyeyasu/bingo-paste/internal/mvc/model/paste"
-	user "github.com/Iyeyasu/bingo-paste/internal/mvc/model/user"
 	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 	"github.com/julienschmidt/httprouter"
-	"github.com/tdewolff/minify"
-	"github.com/tdewolff/minify/css"
-	"github.com/tdewolff/minify/html"
-	"github.com/tdewolff/minify/js"
 )
 
 func main() {
@@ -22,7 +15,7 @@ func main() {
 	router := new(httprouter.Router)
 
 	// Paste routing
-	pasteStore := paste.NewPasteStore(db)
+	pasteStore := model.NewPasteStore(db)
 	pasteCtrl := controller.NewPasteController(pasteStore)
 	router.Handler(http.MethodGet, "/", newMiddleware(pasteCtrl.ServeEditPage))
 	router.Handler(http.MethodGet, "/pastes", newMiddleware(pasteCtrl.ServeListPage))
@@ -31,7 +24,7 @@ func main() {
 	router.Handler(http.MethodPost, "/pastes", newMiddleware(pasteCtrl.CreatePaste))
 
 	// User routing
-	userStore := user.NewUserStore(db)
+	userStore := model.NewUserStore(db)
 	userCtrl := controller.NewUserController(userStore)
 	router.Handler(http.MethodGet, "/users", newMiddleware(userCtrl.ServeListPage))
 	router.Handler(http.MethodGet, "/users/create", newMiddleware(userCtrl.ServeCreatePage))
@@ -58,13 +51,8 @@ func main() {
 }
 
 func newMiddleware(handler http.HandlerFunc) http.Handler {
-	m := minify.New()
-	m.AddFunc("text/css", css.Minify)
-	m.AddFunc("text/html", html.Minify)
-	m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
-
-	mw := middleware.NewAuthenticationMiddleware(handler)
-	mw = middleware.NewLogMiddleware(mw)
-	mw = m.Middleware(mw)
+	mw := httpmw.AuthMiddleware(handler)
+	mw = httpmw.LogMiddleware(mw)
+	mw = httpmw.MinifyMiddleware(mw)
 	return mw
 }

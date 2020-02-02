@@ -24,21 +24,21 @@ func NewPasteQuery(db *sql.DB) *PasteQuery {
 	log.Debug("Initializing paste query")
 
 	query := new(PasteQuery)
-	createTable(db)
-	query.findByID = createFindByIDStatement(db)
-	query.findRange = createFindRangeStatement(db)
-	query.search = createSearchStatement(db)
-	query.insert = createInsertStatement(db)
-	query.delete = createDeleteStatement(db)
-	query.deleteExpired = createDeleteExpiredStatement(db)
+	query.createTable(db)
+	query.findByID = query.createFindByIDStatement(db)
+	query.findRange = query.createFindRangeStatement(db)
+	query.search = query.createSearchStatement(db)
+	query.insert = query.createInsertStatement(db)
+	query.delete = query.createDeleteStatement(db)
+	query.deleteExpired = query.createDeleteExpiredStatement(db)
 
 	return query
 }
 
-func createTable(db *sql.DB) {
+func (q *PasteQuery) createTable(db *sql.DB) {
 	log.Debug("Creating table 'pastes'")
 
-	q := `
+	query := `
 		CREATE SEQUENCE IF NOT EXISTS pastes_id_seq AS bigint;
 
 		CREATE TABLE IF NOT EXISTS pastes (
@@ -54,21 +54,19 @@ func createTable(db *sql.DB) {
 		);
 
 		ALTER SEQUENCE pastes_id_seq OWNED BY pastes.id;
-
 		CREATE INDEX IF NOT EXISTS index_pastes_expires ON pastes (time_expires_sec, is_public);
-
 		CREATE INDEX IF NOT EXISTS index_pastes_tsv ON pastes USING GIN(tsv)
 		`
-	_, err := db.Exec(q)
+	_, err := db.Exec(query)
 	if err != nil {
 		log.Fatalf("Failed to create table 'pastes': %s", err)
 	}
 }
 
-func createInsertStatement(db *sql.DB) *sql.Stmt {
+func (q *PasteQuery) createInsertStatement(db *sql.DB) *sql.Stmt {
 	// We replace all periods with space as otherwise postgres won't recognize
 	// period as a delimiter for full text search.
-	q := fmt.Sprintf(`
+	query := fmt.Sprintf(`
 		INSERT INTO pastes (%s, tsv)
 		VALUES ($1, $2, $3, $4, $5, $6, $7,
 			setweight(to_tsvector($1), 'A')
@@ -77,30 +75,30 @@ func createInsertStatement(db *sql.DB) *sql.Stmt {
 		RETURNING id, %s
 		`, pasteColumns, pasteColumns)
 
-	stmt, err := db.Prepare(q)
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		log.Fatalf("Failed to get insert paste statement: %s", err)
 	}
 	return stmt
 }
 
-func createFindByIDStatement(db *sql.DB) *sql.Stmt {
-	q := fmt.Sprintf(`
+func (q *PasteQuery) createFindByIDStatement(db *sql.DB) *sql.Stmt {
+	query := fmt.Sprintf(`
 		SELECT id, %s
 		FROM pastes
 		WHERE id = $1
 		AND time_expires_sec > $2
 		`, pasteColumns)
 
-	stmt, err := db.Prepare(q)
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		log.Fatalf("Failed to get find paste by id statement: %s", err)
 	}
 	return stmt
 }
 
-func createFindRangeStatement(db *sql.DB) *sql.Stmt {
-	q := fmt.Sprintf(`
+func (q *PasteQuery) createFindRangeStatement(db *sql.DB) *sql.Stmt {
+	query := fmt.Sprintf(`
 		SELECT id, %s
 		FROM pastes
 		WHERE time_expires_sec > $1
@@ -109,15 +107,15 @@ func createFindRangeStatement(db *sql.DB) *sql.Stmt {
 		LIMIT $2 OFFSET $3
 		`, pasteColumns)
 
-	stmt, err := db.Prepare(q)
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		log.Fatalf("Failed to get find paste range statement: %s", err)
 	}
 	return stmt
 }
 
-func createSearchStatement(db *sql.DB) *sql.Stmt {
-	q := fmt.Sprintf(`
+func (q *PasteQuery) createSearchStatement(db *sql.DB) *sql.Stmt {
+	query := fmt.Sprintf(`
 		SELECT id, %s
 		FROM pastes
 		WHERE time_expires_sec > $1
@@ -127,14 +125,14 @@ func createSearchStatement(db *sql.DB) *sql.Stmt {
 		LIMIT $3 OFFSET $4
 		`, pasteColumns)
 
-	stmt, err := db.Prepare(q)
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		log.Fatalf("Failed to get search paste statement: %s", err)
 	}
 	return stmt
 }
 
-func createDeleteStatement(db *sql.DB) *sql.Stmt {
+func (q *PasteQuery) createDeleteStatement(db *sql.DB) *sql.Stmt {
 	stmt, err := db.Prepare("DELETE FROM pastes WHERE id = $1")
 	if err != nil {
 		log.Fatalf("Failed to get delete paste statement: %s", err)
@@ -142,7 +140,7 @@ func createDeleteStatement(db *sql.DB) *sql.Stmt {
 	return stmt
 }
 
-func createDeleteExpiredStatement(db *sql.DB) *sql.Stmt {
+func (q *PasteQuery) createDeleteExpiredStatement(db *sql.DB) *sql.Stmt {
 	stmt, err := db.Prepare("DELETE FROM pastes WHERE time_expires_sec <= $1")
 	if err != nil {
 		log.Fatalf("Failed to get delete expired pastes statement: %s", err)

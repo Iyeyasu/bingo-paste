@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
-	util "github.com/Iyeyasu/bingo-paste/internal/util/fmt"
+	"github.com/Iyeyasu/bingo-paste/internal/util/fmtutil"
 	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
 
@@ -40,7 +39,7 @@ func (store *PasteStore) Insert(paste *Paste) (*Paste, error) {
 	row := store.query.insert.QueryRow(
 		paste.Title,
 		paste.RawContent,
-		util.FormatCode(paste.Language, paste.RawContent),
+		fmtutil.FormatCode(paste.Language, paste.RawContent),
 		paste.IsPublic,
 		timeCreated,
 		timeExpires,
@@ -114,7 +113,7 @@ func (store *PasteStore) scanRows(rows *sql.Rows) ([]*Paste, error) {
 	return pastes, nil
 }
 
-func (store *PasteStore) scanRow(row model.Scannable) (*Paste, error) {
+func (store *PasteStore) scanRow(row Scannable) (*Paste, error) {
 	paste := new(Paste)
 	timeCreated := int64(0)
 	timeExpires := int64(0)

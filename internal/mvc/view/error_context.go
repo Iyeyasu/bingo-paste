@@ -4,12 +4,11 @@ import (
 	"net/http"
 
 	"github.com/Iyeyasu/bingo-paste/internal/config"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
 )
 
 // ErrorContext represents a rendering context for the Error page.
 type ErrorContext struct {
-	view.PageContext
+	PageContext
 	StatusCode  int
 	Description string
 }
@@ -19,7 +18,7 @@ func (v *ErrorView) NewErrorContext() ErrorContext {
 	return ErrorContext{
 		StatusCode:  http.StatusNotFound,
 		Description: "Page not found",
-		PageContext: view.PageContext{
+		PageContext: PageContext{
 			Page:   v.Error,
 			Config: config.Get(),
 		},

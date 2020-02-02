@@ -131,6 +131,7 @@
 }
 
 .card__button {
+  cursor:pointer;
   flex-grow: 0;
   text-transform: uppercase;
   align-items: center;

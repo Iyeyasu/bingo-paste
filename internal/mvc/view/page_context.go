@@ -2,7 +2,7 @@ package view
 
 import (
 	"github.com/Iyeyasu/bingo-paste/internal/config"
-	model "github.com/Iyeyasu/bingo-paste/internal/mvc/model/user"
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
 )
 
 // PageContext represents a rendering context for a page template.

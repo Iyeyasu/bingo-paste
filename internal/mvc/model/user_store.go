@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
-	"github.com/Iyeyasu/bingo-paste/internal/util"
+	util "github.com/Iyeyasu/bingo-paste/internal/util/auth"
 	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
 
@@ -76,11 +75,11 @@ func (store *UserStore) FindRange(limit int64, offset int64) ([]*User, error) {
 }
 
 // Insert inserts a new user to the database.
-func (store *UserStore) Insert(userModel *UserModel) (*User, error) {
+func (store *UserStore) Insert(userTmpl *UserModel) (*User, error) {
 	log.Debug("Inserting new user to database")
-	log.Tracef("%+v", userModel)
+	log.Tracef("%+v", userTmpl)
 
-	passwordHash, err := util.HashPassword(userModel.Password.String)
+	passwordHash, err := util.HashPassword(userTmpl.Password.String)
 	if err != nil {
 		return nil, err
 	}
@@ -89,31 +88,31 @@ func (store *UserStore) Insert(userModel *UserModel) (*User, error) {
 	row := store.query.insert.QueryRow(
 		timeCreated,
 		passwordHash,
-		userModel.Name,
-		userModel.Email,
-		userModel.AuthType,
-		userModel.AuthExternalID,
-		userModel.Role,
-		userModel.Theme,
+		userTmpl.Name,
+		userTmpl.Email,
+		userTmpl.AuthType,
+		userTmpl.AuthExternalID,
+		userTmpl.Role,
+		userTmpl.Theme,
 	)
 
 	return store.scanRow(row)
 }
 
 // Update Updates an existing user in the database.
-func (store *UserStore) Update(userModel *UserModel) (*User, error) {
+func (store *UserStore) Update(userTmpl *UserModel) (*User, error) {
 	log.Debug("Updating existing user in the database")
-	log.Tracef("%+v", userModel)
+	log.Tracef("%+v", userTmpl)
 
 	row := store.query.update.QueryRow(
-		userModel.ID,
+		userTmpl.ID,
 		nil,
-		userModel.Name,
-		userModel.Email,
-		userModel.AuthType,
-		userModel.AuthExternalID,
-		userModel.Role,
-		userModel.Theme,
+		userTmpl.Name,
+		userTmpl.Email,
+		userTmpl.AuthType,
+		userTmpl.AuthExternalID,
+		userTmpl.Role,
+		userTmpl.Theme,
 	)
 
 	return store.scanRow(row)
@@ -168,7 +167,7 @@ func (store *UserStore) scanRows(rows *sql.Rows) ([]*User, error) {
 	return users, nil
 }
 
-func (store *UserStore) scanRow(row model.Scannable) (*User, error) {
+func (store *UserStore) scanRow(row Scannable) (*User, error) {
 	user := new(User)
 	timeCreated := int64(0)
 	authExternalID := []byte{}
