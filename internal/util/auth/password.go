@@ -4,8 +4,6 @@ import "golang.org/x/crypto/bcrypt"
 
 var (
 	passwordIterations = 12
-	passwordMinLength  = 8
-	passwordMaxLength  = 1024
 )
 
 // HashPassword creates a bcrypt hash of the given password.

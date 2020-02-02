@@ -31,19 +31,19 @@ func NewPasteStore(db *sql.DB) *PasteStore {
 }
 
 // Insert inserts a new paste to the database.
-func (store *PasteStore) Insert(paste *Paste) (*Paste, error) {
+func (store *PasteStore) Insert(template *PasteTemplate) (*Paste, error) {
 	log.Debug("Inserting new paste to database")
 
 	timeCreated := time.Now().Unix()
-	timeExpires := timeCreated + int64(paste.Duration.Seconds())
+	timeExpires := timeCreated + int64(template.Duration.Seconds())
 	row := store.query.insert.QueryRow(
-		paste.Title,
-		paste.RawContent,
-		fmtutil.FormatCode(paste.Language, paste.RawContent),
-		paste.IsPublic,
+		template.Title,
+		template.RawContent,
+		fmtutil.FormatCode(template.Language, template.RawContent),
+		template.IsPublic,
 		timeCreated,
 		timeExpires,
-		paste.Language,
+		template.Language,
 	)
 
 	return store.scanRow(row)
@@ -132,7 +132,7 @@ func (store *PasteStore) scanRow(row Scannable) (*Paste, error) {
 	}
 
 	paste.TimeCreated = time.Unix(timeCreated, 0)
-	paste.Duration = time.Second * time.Duration(timeExpires-time.Now().Unix())
+	paste.TimeExpires = time.Unix(timeExpires, 0)
 	return paste, nil
 }
 

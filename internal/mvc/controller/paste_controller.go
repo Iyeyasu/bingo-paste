@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
 	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
 	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
-	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
 )
 
 // PasteController handles creating and displaying pastes.
@@ -91,13 +91,13 @@ func (ctrl *PasteController) ServeListPage(w http.ResponseWriter, r *http.Reques
 
 // CreatePaste creates a new paste.
 func (ctrl *PasteController) CreatePaste(w http.ResponseWriter, r *http.Request) {
-	paste, err := parsePaste(r)
+	template, err := parseTemplate(r)
 	if err != nil {
 		httpext.WriteError(w, fmt.Sprintln("failed to create new paste:", err))
 		return
 	}
 
-	paste, err = ctrl.store.Insert(paste)
+	paste, err := ctrl.store.Insert(template)
 	if err != nil {
 		httpext.WriteError(w, fmt.Sprintln("failed to create new paste:", err))
 		return
@@ -106,7 +106,7 @@ func (ctrl *PasteController) CreatePaste(w http.ResponseWriter, r *http.Request)
 	http.Redirect(w, r, fmt.Sprintf("/pastes/%d", paste.ID), 303)
 }
 
-func parsePaste(r *http.Request) (*model.Paste, error) {
+func parseTemplate(r *http.Request) (*model.PasteTemplate, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse paste: %s", err)
@@ -122,12 +122,12 @@ func parsePaste(r *http.Request) (*model.Paste, error) {
 		return nil, fmt.Errorf("failed to parse paste: %s", err)
 	}
 
-	paste := model.Paste{
+	template := model.PasteTemplate{
 		Title:      values.Get("title"),
 		RawContent: values.Get("content"),
 		IsPublic:   values.Get("visibility") == "public",
 		Duration:   time.Duration(duration),
 		Language:   values.Get("language"),
 	}
-	return &paste, nil
+	return &template, nil
 }

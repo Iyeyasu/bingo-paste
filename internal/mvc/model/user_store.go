@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	util "github.com/Iyeyasu/bingo-paste/internal/util/auth"
+	"github.com/Iyeyasu/bingo-paste/internal/util/auth"
 	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
 
@@ -79,7 +79,7 @@ func (store *UserStore) Insert(userTmpl *UserModel) (*User, error) {
 	log.Debug("Inserting new user to database")
 	log.Tracef("%+v", userTmpl)
 
-	passwordHash, err := util.HashPassword(userTmpl.Password.String)
+	passwordHash, err := auth.HashPassword(userTmpl.Password.String)
 	if err != nil {
 		return nil, err
 	}
