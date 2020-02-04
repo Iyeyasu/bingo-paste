@@ -9,7 +9,7 @@
         <textarea name="content" class="card__body" pattern=".*\S+.*" title="Paste content required" required></textarea>
 
         <div class="card__footer">
-            {{ if (len .Config.Extensions.Highlight.Languages) }}
+            {{ if (len .Config.Highlight.Languages) }}
             <div class="card__control card__dropdown">
                 <svg class="card__control__icon card__control__icon--right" viewBox="0 0 14 16" version="1.1">
                     <path fill-rule="evenodd"
@@ -18,7 +18,7 @@
                 </svg>
                 <select name="language">
                     <option value="plaintext">Plain Text</option>
-                    {{ range .Config.Extensions.Highlight.Languages }}
+                    {{ range .Config.Highlight.Languages }}
                     <option value="{{ . }}">{{ . }}</option>
                     {{ end }}
                 </select>
@@ -28,7 +28,7 @@
             </div>
             {{ end }}
 
-            {{ if (.Config.Extensions.Visibility.Enabled) }}
+            {{ if .Config.Visibility.Enabled }}
             <div class="card__control card__dropdown">
                 <svg class="card__control__icon card__control__icon--right" viewBox="0 0 16 16" version="1.1">
                     <path fill-rule="evenodd"
@@ -36,8 +36,11 @@
                     </path>
                 </svg>
                 <select name="visibility">
-                    <option value="private" selected="selected">Private</option>
-                    <option value="public">Public</option>
+                    {{ if .Config.Authentication.Enabled }}
+                    <option value="2" {{ if eq .Config.Visibility.Default 2 }} selected="selected" {{ end }}>Public</option>
+                    {{ end }}
+                    <option value="1" {{ if eq .Config.Visibility.Default 1 }} selected="selected" {{ end }}>Listed</option>
+                    <option value="0" {{ if eq .Config.Visibility.Default 0 }} selected="selected" {{ end }}>Unlisted</option>
                 </select>
                 <svg class="card__control__icon card__control__icon--arrow" viewBox="0 0 10 16" version="1.1">
                     <path fill-rule="evenodd" d="M5 11L0 6l1.5-1.5L5 8.25 8.5 4.5 10 6l-5 5z"></path>
@@ -45,7 +48,7 @@
             </div>
             {{ end }}
 
-            {{ if (len .Config.Extensions.Expiry.Durations) }}
+            {{ if (len .Config.Expiry.Durations) }}
             <div class="card__control card__dropdown">
                 <svg class="card__control__icon card__control__icon--right" viewBox="0 0 12 16" version="1.1">
                     <path fill-rule="evenodd"
@@ -53,7 +56,7 @@
                     </path>
                 </svg>
                 <select name="expiry">
-                    {{ range .Config.Extensions.Expiry.Durations }}
+                    {{ range .Config.Expiry.Durations }}
                     <option value="{{ duration . }}">{{ formatExpiry . 2 }}</option>
                     {{ end }}
                 </select>

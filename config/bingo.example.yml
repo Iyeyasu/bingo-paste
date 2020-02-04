@@ -1,8 +1,8 @@
-log_level: trace
+log_level: info
 
-appearance:
-  title: "Pastebin"
-  theme: "light"
+theme:
+  default: light
+  title: Pastebin
 
 db:
   driver: postgres
@@ -14,20 +14,19 @@ db:
   ssl: disable
 
 auth:
-  type: standard
-  disable_registration: true
-  session:
-    name: session_bingo
-    timeout: 180
-    idle_timout: 20
-    secure_cookie: true
+  enabled: false
+  default_mode: standard
+  default_role: editor
+  registration: true
+  session_name: session_bingo
+  secure_cookie: false
 
-extensions:
-  expiry:
-    enabled: true
+expiry:
+  enabled: true
 
-  highlight:
-    enabled: true
+highlight:
+  enabled: true
 
-  visibility:
-    enabled: true
+visibility:
+  enabled: true
+  default: listed

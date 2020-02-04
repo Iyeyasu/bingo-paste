@@ -1,11 +1,11 @@
 {{ define "index" }}
 
-<html lang="en" data-theme="{{ .Config.Appearance.Theme }}">
+<html lang="en" data-theme="{{ if .CurrentUser }} {{ .CurrentUser.Theme.String }} {{ else }} {{ .Config.Theme.Default.String }} {{ end }}">
 
 <head>
     <meta charset="utf-8">
-    <title>{{ .Config.Appearance.Title }}</title>
-    <meta name="description" content="{{ .Config.Appearance.Title }}">
+    <title>{{ .Config.Theme.Title }}</title>
+    <meta name="description" content="{{ .Config.Theme.Title }}">
 </head>
 
 <body>

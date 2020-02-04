@@ -1,10 +1,9 @@
 package model
 
 import (
-	"bytes"
-	"encoding/gob"
-	"encoding/json"
 	"time"
+
+	"github.com/Iyeyasu/bingo-paste/internal/config"
 )
 
 // Paste represents the paste contents and surrounding metadata.
@@ -14,33 +13,16 @@ type Paste struct {
 	Title            string
 	RawContent       string
 	FormattedContent string
-	IsPublic         bool
+	Visibility       config.Visibility
 	Language         string
 	TimeExpires      time.Time
 }
 
+// PasteTemplate represents paste changes to be committed to the database.
 type PasteTemplate struct {
 	Title      string
 	RawContent string
-	IsPublic   bool
+	Visibility config.Visibility
 	Language   string
 	Duration   time.Duration
-}
-
-// MarshalBinary converts the paste to a binary array.
-func (paste *Paste) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(paste); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-// UnmarshalBinary converts a binary array to paste.
-func (paste *Paste) UnmarshalBinary(data []byte) error {
-	reader := bytes.NewReader(data)
-	if err := gob.NewDecoder(reader).Decode(paste); err != nil {
-		return err
-	}
-	return json.Unmarshal(data, paste)
 }

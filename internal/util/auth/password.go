@@ -3,12 +3,13 @@ package auth
 import "golang.org/x/crypto/bcrypt"
 
 var (
-	passwordIterations = 12
+	// PasswordIterations determins how many bcrypt iterations to use.
+	PasswordIterations = 12
 )
 
 // HashPassword creates a bcrypt hash of the given password.
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), passwordIterations)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), PasswordIterations)
 	return string(bytes), err
 }
 

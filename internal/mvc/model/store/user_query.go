@@ -1,4 +1,4 @@
-package model
+package store
 
 import (
 	"database/sql"
@@ -39,17 +39,18 @@ func createTable(db *sql.DB) {
 
 		CREATE TABLE IF NOT EXISTS users (
 			id 					bigint PRIMARY KEY DEFAULT pseudo_encrypt(nextval('users_id_seq')),
-			time_created_sec 	bigint NOT NULL,
-			password_hash 		text,
-			name 				text NOT NULL,
-			email 				text NOT NULL,
-			auth_type 			int NOT NULL,
-			auth_external_id 	text,
+			time_created 	    bigint NOT NULL,
+			password_hash 		char(60),
+			name 				varchar(32) NOT NULL,
+			email 				varchar(254) NOT NULL,
+			auth_mode 			int NOT NULL,
+			auth_external_id 	varchar(32),
 			role 				int NOT NULL,
 			theme 				int NOT NULL
 		);
 
-		ALTER SEQUENCE users_id_seq OWNED BY users.id
+		ALTER SEQUENCE users_id_seq OWNED BY users.id;
+		CREATE UNIQUE INDEX IF NOT EXISTS name_lower_idx ON users (lower(name));
 	`
 
 	_, err := db.Exec(q)
@@ -75,7 +76,7 @@ func createFindByIDStatement(db *sql.DB) *sql.Stmt {
 }
 
 func createFindByNameStatement(db *sql.DB) *sql.Stmt {
-	stmt, err := db.Prepare("SELECT * FROM users WHERE name ILIKE $1")
+	stmt, err := db.Prepare("SELECT * FROM users WHERE lower(name) = lower($1)")
 	if err != nil {
 		log.Fatalf("Failed to create find user by name user statement: %s", err)
 	}
@@ -101,11 +102,11 @@ func createFindRangeStatement(db *sql.DB) *sql.Stmt {
 func createInsertStatement(db *sql.DB) *sql.Stmt {
 	q := `
 		INSERT INTO users (
-				time_created_sec,
+				time_created,
 				password_hash,
 				name,
 				email,
-				auth_type,
+				auth_mode,
 				auth_external_id,
 				role,
 				theme)
@@ -127,7 +128,7 @@ func createUpdateStatement(db *sql.DB) *sql.Stmt {
 			password_hash 		= COALESCE($2, password_hash),
 			name 				= COALESCE($3, name),
 			email 				= COALESCE($4, email),
-			auth_type 			= COALESCE($5, auth_type),
+			auth_mode 			= COALESCE($5, auth_mode),
 			auth_external_id 	= COALESCE($6, auth_external_id),
 			role 				= COALESCE($7, role),
 			theme 				= COALESCE($8, theme)

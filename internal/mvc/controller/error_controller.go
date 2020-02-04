@@ -20,6 +20,6 @@ func NewErrorController() *ErrorController {
 
 // ServeErrorPage serves the error page.
 func (ctrl *ErrorController) ServeErrorPage(w http.ResponseWriter, r *http.Request) {
-	ctx := ctrl.view.NewErrorContext()
+	ctx := ctrl.view.NewErrorContext(r)
 	ctrl.view.Error.Render(w, ctx)
 }

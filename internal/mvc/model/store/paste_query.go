@@ -1,4 +1,4 @@
-package model
+package store
 
 import (
 	"database/sql"
@@ -7,7 +7,7 @@ import (
 	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
 
-var pasteColumns = "title, raw_content, formatted_content, is_public, time_created_sec, time_expires_sec, language"
+var pasteColumns = "title, raw_content, formatted_content, visibility, time_created, time_expires, language"
 
 // PasteQuery is the query for pastes.
 type PasteQuery struct {
@@ -43,19 +43,19 @@ func (q *PasteQuery) createTable(db *sql.DB) {
 
 		CREATE TABLE IF NOT EXISTS pastes (
 			id bigint PRIMARY KEY DEFAULT pseudo_encrypt(nextval('pastes_id_seq')),
-			title text NOT NULL,
+			title varchar(128) NOT NULL,
 			raw_content text NOT NULL,
 			formatted_content text NOT NULL,
-			is_public bool NOT NULL,
-			time_created_sec bigint NOT NULL,
-			time_expires_sec bigint NOT NULL,
-			language text NOT NULL,
+			visibility int NOT NULL,
+			time_created bigint NOT NULL,
+			time_expires bigint NOT NULL,
+			language varchar(32) NOT NULL,
 			tsv TSVECTOR
 		);
 
 		ALTER SEQUENCE pastes_id_seq OWNED BY pastes.id;
-		CREATE INDEX IF NOT EXISTS index_pastes_expires ON pastes (time_expires_sec, is_public);
-		CREATE INDEX IF NOT EXISTS index_pastes_tsv ON pastes USING GIN(tsv)
+		CREATE INDEX IF NOT EXISTS pastes_time_expires_visibility_idx ON pastes (time_expires, visibility);
+		CREATE INDEX IF NOT EXISTS pastes_tsv_idx ON pastes USING GIN(tsv)
 		`
 	_, err := db.Exec(query)
 	if err != nil {
@@ -69,9 +69,9 @@ func (q *PasteQuery) createInsertStatement(db *sql.DB) *sql.Stmt {
 	query := fmt.Sprintf(`
 		INSERT INTO pastes (%s, tsv)
 		VALUES ($1, $2, $3, $4, $5, $6, $7,
-			setweight(to_tsvector($1), 'A')
+			setweight(to_tsvector(CAST($1 AS varchar)), 'A')
 			|| setweight(to_tsvector(replace($2, '.', ' ')), 'B')
-			|| setweight(to_tsvector('simple', $7), 'C'))
+			|| setweight(to_tsvector('simple', CAST($7 AS varchar)), 'C'))
 		RETURNING id, %s
 		`, pasteColumns, pasteColumns)
 
@@ -87,7 +87,7 @@ func (q *PasteQuery) createFindByIDStatement(db *sql.DB) *sql.Stmt {
 		SELECT id, %s
 		FROM pastes
 		WHERE id = $1
-		AND time_expires_sec > $2
+		AND time_expires > $2
 		`, pasteColumns)
 
 	stmt, err := db.Prepare(query)
@@ -101,10 +101,10 @@ func (q *PasteQuery) createFindRangeStatement(db *sql.DB) *sql.Stmt {
 	query := fmt.Sprintf(`
 		SELECT id, %s
 		FROM pastes
-		WHERE time_expires_sec > $1
-		AND is_public = TRUE
-		ORDER BY time_created_sec DESC, id ASC
-		LIMIT $2 OFFSET $3
+		WHERE time_expires > $1
+		AND visibility >= $2
+		ORDER BY time_created DESC, id ASC
+		LIMIT $3 OFFSET $4
 		`, pasteColumns)
 
 	stmt, err := db.Prepare(query)
@@ -118,11 +118,11 @@ func (q *PasteQuery) createSearchStatement(db *sql.DB) *sql.Stmt {
 	query := fmt.Sprintf(`
 		SELECT id, %s
 		FROM pastes
-		WHERE time_expires_sec > $1
-		AND is_public = TRUE
-		AND tsv @@ plainto_tsquery($2)
-		ORDER BY time_created_sec DESC, id ASC
-		LIMIT $3 OFFSET $4
+		WHERE time_expires > $1
+		AND visibility >= $2
+		AND tsv @@ plainto_tsquery($3)
+		ORDER BY time_created DESC, id ASC
+		LIMIT $4 OFFSET $5
 		`, pasteColumns)
 
 	stmt, err := db.Prepare(query)
@@ -141,7 +141,7 @@ func (q *PasteQuery) createDeleteStatement(db *sql.DB) *sql.Stmt {
 }
 
 func (q *PasteQuery) createDeleteExpiredStatement(db *sql.DB) *sql.Stmt {
-	stmt, err := db.Prepare("DELETE FROM pastes WHERE time_expires_sec <= $1")
+	stmt, err := db.Prepare("DELETE FROM pastes WHERE time_expires <= $1")
 	if err != nil {
 		log.Fatalf("Failed to get delete expired pastes statement: %s", err)
 	}

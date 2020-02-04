@@ -6,23 +6,25 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
-	"github.com/Iyeyasu/bingo-paste/internal/util/auth"
+	"github.com/Iyeyasu/bingo-paste/internal/config"
 	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/model/store"
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
+	"github.com/Iyeyasu/bingo-paste/internal/session"
+	"github.com/Iyeyasu/bingo-paste/internal/util/auth"
 	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
 
 // AuthController handles user authentication.
 type AuthController struct {
-	store *model.UserStore
+	store *store.UserStore
 	view  *view.AuthView
 }
 
 // NewAuthController creates a new AuthController.
-func NewAuthController(store *model.UserStore) *AuthController {
+func NewAuthController(store *store.UserStore) *AuthController {
 	ctrl := new(AuthController)
 	ctrl.store = store
 	ctrl.view = view.NewAuthView()
@@ -31,13 +33,13 @@ func NewAuthController(store *model.UserStore) *AuthController {
 
 // ServeLoginPage serves the login page.
 func (ctrl *AuthController) ServeLoginPage(w http.ResponseWriter, r *http.Request) {
-	ctx := ctrl.view.NewLoginContext()
+	ctx := ctrl.view.NewLoginContext(r)
 	ctrl.view.Login.Render(w, ctx)
 }
 
 // ServeRegisterPage serves the register page.
 func (ctrl *AuthController) ServeRegisterPage(w http.ResponseWriter, r *http.Request) {
-	ctx := ctrl.view.NewRegisterContext()
+	ctx := ctrl.view.NewRegisterContext(r)
 	ctrl.view.Register.Render(w, ctx)
 }
 
@@ -47,38 +49,47 @@ func (ctrl *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		httpext.WriteError(w, fmt.Sprintln("failed to parse login info:", err))
+		httpext.InternalError(w, fmt.Sprintln("failed to parse login info:", err))
 		return
 	}
 
 	values, err := url.ParseQuery(string(body))
 	if err != nil {
-		httpext.WriteError(w, fmt.Sprintln("failed to parse login info:", err))
+		httpext.InternalError(w, fmt.Sprintln("failed to parse login info:", err))
 		return
 	}
 
-	username := strings.TrimSpace(values.Get("username"))
-	password := strings.TrimSpace(values.Get("password"))
+	username := values.Get("username")
+	password := values.Get("password")
 	log.Debugf("Login username '%s", username)
 	log.Tracef("Login password '%s'", password)
 
 	user, err := ctrl.store.FindByName(username)
 	if err != nil {
-		httpext.WriteError(w, fmt.Sprintln("failed to login user:", err.Error()))
+		httpext.InternalError(w, fmt.Sprintln("failed to login user:", err.Error()))
 		return
 	}
 
 	err = auth.CheckPasswordHash(password, user.PasswordHash)
 	if err != nil {
-		httpext.WriteError(w, fmt.Sprintln("failed to login user:", err.Error()))
+		httpext.InternalError(w, fmt.Sprintln("failed to login user:", err.Error()))
 		return
 	}
 
+	err = session.Login(r, user)
+	if err != nil {
+		httpext.InternalError(w, fmt.Sprintln("failed to login user:", err.Error()))
+		return
+	}
+
+	log.Debugf("User '%s' logged in", username)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // Logout logs a user out.
 func (ctrl *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
+	session.Logout(r)
+
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
@@ -88,45 +99,55 @@ func (ctrl *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		httpext.WriteError(w, fmt.Sprintln("failed to parse registering info:", err))
+		httpext.InternalError(w, fmt.Sprintln("failed to parse registering info:", err))
 		return
 	}
 
 	values, err := url.ParseQuery(string(body))
 	if err != nil {
-		httpext.WriteError(w, fmt.Sprintln("failed to parse registering info:", err))
+		httpext.InternalError(w, fmt.Sprintln("failed to parse registering info:", err))
 		return
 	}
 
-	username := strings.TrimSpace(values.Get("username"))
-	email := strings.TrimSpace(values.Get("email"))
-	password := strings.TrimSpace(values.Get("password"))
-	passwordCheck := strings.TrimSpace(values.Get("password_confirm"))
+	username := values.Get("username")
+	email := values.Get("email")
+	password := values.Get("password")
+	passwordCheck := values.Get("password_confirm")
 
 	log.Debugf("Registering username '%s", username)
 	log.Debugf("Registering email '%s", email)
 	log.Tracef("Registering password '%s' ('%s')", password, passwordCheck)
 
 	if password != passwordCheck {
-		httpext.WriteError(w, fmt.Sprint("failed to register user: passwords don't match"))
+		httpext.InternalError(w, fmt.Sprint("failed to register user: passwords don't match"))
 		return
 	}
 
-	template := model.UserModel{
+	theme := config.Get().Theme.Default
+	authRole := config.Get().Authentication.DefaultRole
+	authMode := config.Get().Authentication.DefaultMode
+	userTmpl := model.UserTemplate{
 		Password:       sql.NullString{String: password, Valid: true},
 		Name:           sql.NullString{String: username, Valid: true},
 		Email:          sql.NullString{String: email, Valid: true},
-		AuthType:       sql.NullInt32{Int32: int32(model.AuthStandard), Valid: true},
+		AuthMode:       sql.NullInt32{Int32: int32(authMode), Valid: true},
 		AuthExternalID: sql.NullString{Valid: false},
-		Role:           sql.NullInt32{Int32: int32(model.RoleEditor), Valid: true},
-		Theme:          sql.NullInt32{Int32: int32(model.ThemeLight), Valid: true},
+		Role:           sql.NullInt32{Int32: int32(authRole), Valid: true},
+		Theme:          sql.NullInt32{Int32: int32(theme), Valid: true},
 	}
 
-	_, err = ctrl.store.Insert(&template)
+	user, err := ctrl.store.Insert(&userTmpl)
 	if err != nil {
-		httpext.WriteError(w, fmt.Sprintln("failed to create user", err.Error()))
+		httpext.InternalError(w, fmt.Sprintln("failed to create user", err.Error()))
 		return
 	}
 
+	err = session.Login(r, user)
+	if err != nil {
+		httpext.InternalError(w, fmt.Sprintln("failed to login created user:", err.Error()))
+		return
+	}
+
+	log.Debugf("User '%s' created and logged in", username)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

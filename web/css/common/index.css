@@ -13,7 +13,7 @@
   --color-text-header-disabled: #9da1aa;
 }
 
-[data-theme="dark"] {
+[data-theme="Dark"] {
   --color-bg-darker: #14161b;
   --color-bg-dark: #14161b;
   --color-bg-medium: #1b1d24;

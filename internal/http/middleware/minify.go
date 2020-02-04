@@ -1,4 +1,4 @@
-package httpmw
+package middleware
 
 import (
 	"net/http"
@@ -10,8 +10,8 @@ import (
 	"github.com/tdewolff/minify/js"
 )
 
-// MinifyMiddleware handles minifying HTTP responses.
-func MinifyMiddleware(next http.Handler) http.Handler {
+// Minify handles minifying HTTP responses.
+func Minify(next http.Handler) http.Handler {
 	m := minify.New()
 	m.AddFunc("text/css", css.Minify)
 	m.AddFunc("text/html", html.Minify)

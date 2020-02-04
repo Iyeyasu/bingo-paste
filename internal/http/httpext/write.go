@@ -17,19 +17,10 @@ func WriteDefaultHeaders(w http.ResponseWriter, contentType string) {
 // WriteRaw writes the specified content type to the HTTP response.
 func WriteRaw(w http.ResponseWriter, contentType string, output []byte) {
 	WriteDefaultHeaders(w, contentType)
+
 	_, err := w.Write(output)
 	if err != nil {
-		WriteError(w, fmt.Sprintf("Failed to write raw bytes to HTTP response: %s", err))
-	}
-}
-
-// WriteJSON writes raw JSON to the HTTP response.
-func WriteJSON(w http.ResponseWriter, output interface{}) {
-	WriteDefaultHeaders(w, "application/json")
-	encode := json.NewEncoder(w)
-	err := encode.Encode(output)
-	if err != nil {
-		WriteError(w, fmt.Sprintf("Failed to write JSON to HTTP response: %s", err))
+		InternalError(w, fmt.Sprintf("Failed to write raw bytes to HTTP response: %s", err))
 	}
 }
 
@@ -43,17 +34,36 @@ func WriteHTML(w http.ResponseWriter, output []byte) {
 	WriteRaw(w, "text/html", output)
 }
 
-// WriteError writes an error to the HTTP response.
-func WriteError(w http.ResponseWriter, msg string) {
-	log.Error(msg)
+// InternalError writes an internal server error to the HTTP response.
+func InternalError(w http.ResponseWriter, msg string) {
+	log.Info(msg)
 	http.Error(w, msg, http.StatusInternalServerError)
+}
+
+// UnauthorizedError writes an unauthorized error to the HTTP response.
+func UnauthorizedError(w http.ResponseWriter) {
+	msg := "You do not have the permission to view this page"
+	log.Info(msg)
+	http.Error(w, msg, http.StatusUnauthorized)
+}
+
+// WriteJSON writes raw JSON to the HTTP response.
+func WriteJSON(w http.ResponseWriter, output interface{}) {
+	WriteDefaultHeaders(w, "application/json")
+
+	encode := json.NewEncoder(w)
+	err := encode.Encode(output)
+	if err != nil {
+		InternalError(w, fmt.Sprintf("Failed to write JSON to HTTP response: %s", err))
+	}
 }
 
 // WriteTemplate writes the given template to the HTTP response.
 func WriteTemplate(w http.ResponseWriter, tmpl *template.Template, ctx interface{}) {
 	WriteDefaultHeaders(w, "text/html")
+
 	err := tmpl.Execute(w, ctx)
 	if err != nil {
-		WriteError(w, fmt.Sprintf("Failed to write template %s to HTTP response: %s", tmpl.Name(), err))
+		InternalError(w, fmt.Sprintf("Failed to write template %s to HTTP response: %s", tmpl.Name(), err))
 	}
 }

@@ -1,10 +1,11 @@
-package model
+package store
 
 import (
 	"database/sql"
 	"fmt"
 	"time"
 
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
 	"github.com/Iyeyasu/bingo-paste/internal/util/auth"
 	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
@@ -20,11 +21,6 @@ func NewUserStore(db *sql.DB) *UserStore {
 	store := new(UserStore)
 	store.query = newUserQuery(db)
 	log.Debugf("User store initialized (%d users)", store.Count())
-
-	if store.Count() == 0 {
-		store.createInitialUser()
-	}
-
 	return store
 }
 
@@ -39,7 +35,7 @@ func (store *UserStore) Count() int64 {
 }
 
 // FindByID returns the user with the given id from the database.
-func (store *UserStore) FindByID(id int64) (*User, error) {
+func (store *UserStore) FindByID(id int64) (*model.User, error) {
 	log.Debugf("Retrieving user %d from database", id)
 
 	row := store.query.findByID.QueryRow(id)
@@ -47,23 +43,23 @@ func (store *UserStore) FindByID(id int64) (*User, error) {
 }
 
 // FindByName returns the user with the given name from the database.
-func (store *UserStore) FindByName(name string) (*User, error) {
-	log.Debugf("Retrieving user %d from database", name)
+func (store *UserStore) FindByName(name string) (*model.User, error) {
+	log.Debugf("Retrieving user with name '%s' from database", name)
 
 	row := store.query.findByName.QueryRow(name)
 	return store.scanRow(row)
 }
 
 // FindByEmail returns the user with the given email from the database.
-func (store *UserStore) FindByEmail(email string) (*User, error) {
-	log.Debugf("Retrieving user %d from database", email)
+func (store *UserStore) FindByEmail(email string) (*model.User, error) {
+	log.Debugf("Retrieving user with mail '%s' from database", email)
 
 	row := store.query.findByEmail.QueryRow(email)
 	return store.scanRow(row)
 }
 
 // FindRange returns a slice of public users sorted by their creation time.
-func (store *UserStore) FindRange(limit int64, offset int64) ([]*User, error) {
+func (store *UserStore) FindRange(limit int64, offset int64) ([]*model.User, error) {
 	log.Debugf("Retrieving %d public users starting from user number %d from database", limit, offset)
 
 	rows, err := store.query.findRange.Query(limit, offset)
@@ -75,7 +71,7 @@ func (store *UserStore) FindRange(limit int64, offset int64) ([]*User, error) {
 }
 
 // Insert inserts a new user to the database.
-func (store *UserStore) Insert(userTmpl *UserModel) (*User, error) {
+func (store *UserStore) Insert(userTmpl *model.UserTemplate) (*model.User, error) {
 	log.Debug("Inserting new user to database")
 	log.Tracef("%+v", userTmpl)
 
@@ -84,13 +80,12 @@ func (store *UserStore) Insert(userTmpl *UserModel) (*User, error) {
 		return nil, err
 	}
 
-	timeCreated := time.Now().Unix()
 	row := store.query.insert.QueryRow(
-		timeCreated,
+		time.Now().Unix(),
 		passwordHash,
 		userTmpl.Name,
 		userTmpl.Email,
-		userTmpl.AuthType,
+		userTmpl.AuthMode,
 		userTmpl.AuthExternalID,
 		userTmpl.Role,
 		userTmpl.Theme,
@@ -100,16 +95,27 @@ func (store *UserStore) Insert(userTmpl *UserModel) (*User, error) {
 }
 
 // Update Updates an existing user in the database.
-func (store *UserStore) Update(userTmpl *UserModel) (*User, error) {
+func (store *UserStore) Update(userTmpl *model.UserTemplate) (*model.User, error) {
 	log.Debug("Updating existing user in the database")
 	log.Tracef("%+v", userTmpl)
 
+	var passwordHash sql.NullString
+	if userTmpl.Password.Valid {
+		hash, err := auth.HashPassword(userTmpl.Password.String)
+		if err != nil {
+			return nil, err
+		}
+
+		passwordHash.String = hash
+		passwordHash.Valid = true
+	}
+
 	row := store.query.update.QueryRow(
 		userTmpl.ID,
-		nil,
+		passwordHash,
 		userTmpl.Name,
 		userTmpl.Email,
-		userTmpl.AuthType,
+		userTmpl.AuthMode,
 		userTmpl.AuthExternalID,
 		userTmpl.Role,
 		userTmpl.Theme,
@@ -130,25 +136,8 @@ func (store *UserStore) Delete(id int64) error {
 	return nil
 }
 
-func (store *UserStore) createInitialUser() error {
-	log.Debug("Creating initial admin user")
-
-	user := UserModel{
-		Password:       sql.NullString{String: "admin", Valid: true},
-		Name:           sql.NullString{String: "admin", Valid: true},
-		Email:          sql.NullString{String: "admin@localhost", Valid: true},
-		AuthExternalID: sql.NullString{String: "", Valid: false},
-		AuthType:       sql.NullInt32{Int32: int32(AuthStandard), Valid: true},
-		Role:           sql.NullInt32{Int32: int32(RoleAdmin), Valid: true},
-		Theme:          sql.NullInt32{Int32: int32(ThemeLight), Valid: true},
-	}
-
-	_, err := store.Insert(&user)
-	return err
-}
-
-func (store *UserStore) scanRows(rows *sql.Rows) ([]*User, error) {
-	users := []*User{}
+func (store *UserStore) scanRows(rows *sql.Rows) ([]*model.User, error) {
+	users := []*model.User{}
 	defer rows.Close()
 	for rows.Next() {
 		user, err := store.scanRow(rows)
@@ -167,8 +156,8 @@ func (store *UserStore) scanRows(rows *sql.Rows) ([]*User, error) {
 	return users, nil
 }
 
-func (store *UserStore) scanRow(row Scannable) (*User, error) {
-	user := new(User)
+func (store *UserStore) scanRow(row model.Scannable) (*model.User, error) {
+	user := new(model.User)
 	timeCreated := int64(0)
 	authExternalID := []byte{}
 	err := row.Scan(
@@ -177,7 +166,7 @@ func (store *UserStore) scanRow(row Scannable) (*User, error) {
 		&user.PasswordHash,
 		&user.Name,
 		&user.Email,
-		&user.AuthType,
+		&user.AuthMode,
 		&authExternalID,
 		&user.Role,
 		&user.Theme,
@@ -189,6 +178,6 @@ func (store *UserStore) scanRow(row Scannable) (*User, error) {
 
 	user.TimeCreated = time.Unix(timeCreated, 0)
 	user.AuthExternalID = string(authExternalID)
-	log.Tracef("%+v", user)
+	log.Tracef("Retrieved user %+v", user)
 	return user, nil
 }

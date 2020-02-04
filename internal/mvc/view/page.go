@@ -6,7 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Iyeyasu/bingo-paste/internal/config"
 	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
+	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
+	"github.com/Iyeyasu/bingo-paste/internal/session"
 	"github.com/Iyeyasu/bingo-paste/internal/util/fmtutil"
 	"github.com/Iyeyasu/bingo-paste/internal/util/log"
 )
@@ -17,12 +20,30 @@ type Page struct {
 	Template *template.Template
 }
 
+// PageContext represents a rendering context for a page template.
+type PageContext struct {
+	Page        *Page
+	CurrentUser *model.User
+	Filter      string
+	Config      *config.Config
+}
+
 // NewPage creates a new Page.
 func NewPage(name string, paths []string) *Page {
 	page := new(Page)
 	page.Name = name
 	page.Template = newTemplate(paths)
 	return page
+}
+
+// NewPageContext creates a new PageContext.
+func NewPageContext(r *http.Request, page *Page) PageContext {
+	return PageContext{
+		Page:        page,
+		Filter:      r.URL.Query().Get("search"),
+		CurrentUser: session.User(r),
+		Config:      config.Get(),
+	}
 }
 
 // Render renders the page as a HTTP response using the given rendering context.
