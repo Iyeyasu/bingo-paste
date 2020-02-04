@@ -47,8 +47,8 @@ func (q *PasteQuery) createTable(db *sql.DB) {
 			raw_content text NOT NULL,
 			formatted_content text NOT NULL,
 			visibility int NOT NULL,
-			time_created bigint NOT NULL,
-			time_expires bigint,
+			time_created timestamptz NOT NULL,
+			time_expires timestamptz,
 			language text NOT NULL,
 			tsv TSVECTOR
 		);

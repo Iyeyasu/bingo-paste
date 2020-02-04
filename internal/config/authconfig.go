@@ -37,14 +37,13 @@ type AuthConfig struct {
 	Session struct {
 		Name         string `yaml:"name"`
 		SecureCookie bool   `yaml:"secure_cookie"`
-
-		Store struct {
-			Type     string `yaml:"type"`
+		Store        string `yaml:"store"`
+		Redis        struct {
 			Host     string `yaml:"host"`
 			Port     int    `yaml:"port"`
 			Password string `yaml:"password"`
 			Database int    `yaml:"database"`
-		} `yaml:"store"`
+		} `yaml:"redis"`
 	} `yaml:"session"`
 }
 
@@ -61,12 +60,12 @@ func DefaultAuthConfig() AuthConfig {
 
 	config.Session.Name = "session_bingo"
 	config.Session.SecureCookie = false
+	config.Session.Store = "memory"
 
-	config.Session.Store.Type = "memory"
-	config.Session.Store.Host = "localhost"
-	config.Session.Store.Port = 6379
-	config.Session.Store.Password = ""
-	config.Session.Store.Database = 0
+	config.Session.Redis.Host = "localhost"
+	config.Session.Redis.Port = 6379
+	config.Session.Redis.Password = ""
+	config.Session.Redis.Database = 0
 	return config
 }
 

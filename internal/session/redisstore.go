@@ -16,7 +16,7 @@ type RedisStore struct {
 
 // NewRedisStore returns a new RedisStore instance.
 func NewRedisStore() *RedisStore {
-	conf := config.Get().Authentication.Session.Store
+	conf := config.Get().Authentication.Session.Redis
 	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", conf.Host, conf.Port),
 		Password: conf.Password,

@@ -32,8 +32,6 @@ func newUserQuery(db *sql.DB) *userQuery {
 }
 
 func createTable(db *sql.DB) {
-	log.Debug("Creating table 'users'")
-
 	q := `
 		CREATE SEQUENCE IF NOT EXISTS users_id_seq AS bigint;
 

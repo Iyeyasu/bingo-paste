@@ -12,13 +12,15 @@ import (
 
 // UserStore is the store for users.
 type UserStore struct {
-	query *userQuery
+	Database *sql.DB
+	query    *userQuery
 }
 
 // NewUserStore creates a new UserStore.
 func NewUserStore(db *sql.DB) *UserStore {
 	log.Debug("Initializing user store")
 	store := new(UserStore)
+	store.Database = db
 	store.query = newUserQuery(db)
 	log.Debugf("User store initialized (%d users)", store.Count())
 	return store

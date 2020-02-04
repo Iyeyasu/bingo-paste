@@ -21,8 +21,8 @@ auth:
   session:
     name: session_bingo
     secure_cookie: false
-    store:
-      type: redis
+    store: redis
+    redis:
       host: redis
       port: 6379
       password: ""

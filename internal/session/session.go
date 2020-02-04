@@ -41,8 +41,10 @@ func New(store *store.UserStore) *Session {
 	manager.Cookie.Secure = config.Get().Authentication.Session.SecureCookie
 	manager.ErrorFunc = sessionError
 
-	if config.Get().Authentication.Session.Store.Type == "redis" {
+	if config.Get().Authentication.Session.Store == "redis" {
 		manager.Store = NewRedisStore()
+	} else if config.Get().Authentication.Session.Store == "db" {
+		manager.Store = NewPostgresStore(store.Database)
 	}
 
 	session := new(Session)
