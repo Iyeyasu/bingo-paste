@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/config"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
-	"github.com/Iyeyasu/bingo-paste/internal/util/fmtutil"
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/config"
+	"bingo/internal/mvc/model"
+	"bingo/internal/util/fmtutil"
+	"bingo/internal/util/log"
 )
 
 var (
@@ -27,7 +27,9 @@ func NewPasteStore(db *sql.DB) *PasteStore {
 	store := new(PasteStore)
 	store.query = NewPasteQuery(db)
 
-	go store.monitorExpired()
+	if config.Get().Expiry.Enabled {
+		go store.monitorExpired()
+	}
 
 	return store
 }
@@ -38,13 +40,14 @@ func (store *PasteStore) Insert(pasteTmpl *model.PasteTemplate) (*model.Paste, e
 
 	timeCreated := time.Now().Unix()
 	timeExpires := timeCreated + int64(pasteTmpl.Duration.Seconds())
+	formatted := fmtutil.FormatCode(pasteTmpl.Language, pasteTmpl.RawContent)
 	row := store.query.insert.QueryRow(
 		pasteTmpl.Title,
 		pasteTmpl.RawContent,
-		fmtutil.FormatCode(pasteTmpl.Language, pasteTmpl.RawContent),
+		formatted,
 		pasteTmpl.Visibility,
 		timeCreated,
-		timeExpires,
+		sql.NullInt64{Int64: timeExpires, Valid: pasteTmpl.Duration > 0},
 		pasteTmpl.Language,
 	)
 
@@ -63,7 +66,7 @@ func (store *PasteStore) FindByID(id int64) (*model.Paste, error) {
 func (store *PasteStore) FindRange(limit int64, offset int64) ([]*model.Paste, error) {
 	log.Debugf("Retrieving %d public pastes starting from paste number %d from database", limit, offset)
 
-	rows, err := store.query.findRange.Query(time.Now().Unix(), config.VisibilityListed, limit, offset)
+	rows, err := store.query.findRange.Query(config.VisibilityListed, time.Now().Unix(), limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve pastes: %s", err)
 	}
@@ -75,7 +78,7 @@ func (store *PasteStore) FindRange(limit int64, offset int64) ([]*model.Paste, e
 func (store *PasteStore) Search(filter string, limit int64, offset int64) ([]*model.Paste, error) {
 	log.Debugf("Retrieving %d public pastes starting from paste number %d and matching matching '%s' from database", limit, offset, filter)
 
-	rows, err := store.query.search.Query(time.Now().Unix(), config.VisibilityListed, filter, limit, offset)
+	rows, err := store.query.search.Query(config.VisibilityListed, time.Now().Unix(), filter, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve pastes: %s", err)
 	}
@@ -117,8 +120,9 @@ func (store *PasteStore) scanRows(rows *sql.Rows) ([]*model.Paste, error) {
 
 func (store *PasteStore) scanRow(row model.Scannable) (*model.Paste, error) {
 	paste := new(model.Paste)
-	timeCreated := int64(0)
-	timeExpires := int64(0)
+
+	var timeCreated int64
+	var timeExpires sql.NullInt64
 	err := row.Scan(
 		&paste.ID,
 		&paste.Title,
@@ -134,7 +138,6 @@ func (store *PasteStore) scanRow(row model.Scannable) (*model.Paste, error) {
 	}
 
 	paste.TimeCreated = time.Unix(timeCreated, 0)
-	paste.TimeExpires = time.Unix(timeExpires, 0)
 	return paste, nil
 }
 

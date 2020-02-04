@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/util/log"
 )
 
 // ExpiryConfig contains configuration for paste expiration.
@@ -17,7 +17,7 @@ type ExpiryConfig struct {
 func DefaultExpiryConfig() ExpiryConfig {
 	return ExpiryConfig{
 		Enabled:      true,
-		RawDurations: []int{10, 60, 1440, 10080, 43200, 525600},
+		RawDurations: []int{10, 60, 1440, 10080, 43200, 525600, 0},
 	}
 }
 

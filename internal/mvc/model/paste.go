@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/config"
+	"bingo/internal/config"
 )
 
 // Paste represents the paste contents and surrounding metadata.
@@ -15,7 +15,6 @@ type Paste struct {
 	FormattedContent string
 	Visibility       config.Visibility
 	Language         string
-	TimeExpires      time.Time
 }
 
 // PasteTemplate represents paste changes to be committed to the database.

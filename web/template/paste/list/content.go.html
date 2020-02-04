@@ -6,7 +6,7 @@
             <div class="card__title">Pastes</div>
         </div>
         <div class="card__body list">
-            {{ if (len .Pastes) }}
+            {{ if len .Pastes }}
                 {{ range .Pastes }}
                 <a class="list__element" href="/pastes/{{ .ID }}">
                     <div class="list__element__body">
@@ -24,7 +24,7 @@
                 </a>
                 {{ end }}
             {{ else }}
-                <div class="list__empty">No pastes found</div>
+            <div class="list__empty">No pastes found</div>
             {{ end }}
         </div>
     </div>

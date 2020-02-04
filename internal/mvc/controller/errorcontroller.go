@@ -3,7 +3,7 @@ package controller
 import (
 	"net/http"
 
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
+	"bingo/internal/mvc/view"
 )
 
 // ErrorController handles displaying errors.

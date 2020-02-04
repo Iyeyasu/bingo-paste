@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
-	"github.com/Iyeyasu/bingo-paste/internal/util/auth"
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/mvc/model"
+	"bingo/internal/util/auth"
+	"bingo/internal/util/log"
 )
 
 // UserStore is the store for users.

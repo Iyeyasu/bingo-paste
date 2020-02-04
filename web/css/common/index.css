@@ -51,3 +51,4 @@ body {
 {{ template "header.css" }}
 {{ template "searchbar.css" }}
 {{ template "card.css" }}
+{{ template "notification.css" }}

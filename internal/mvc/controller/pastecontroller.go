@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/config"
-	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model/store"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
-	"github.com/Iyeyasu/bingo-paste/internal/session"
+	"bingo/internal/config"
+	"bingo/internal/http/httpext"
+	"bingo/internal/mvc/model"
+	"bingo/internal/mvc/model/store"
+	"bingo/internal/mvc/view"
+	"bingo/internal/session"
 )
 
 // PasteController handles creating and displaying pastes.
@@ -30,8 +30,8 @@ func NewPasteController(store *store.PasteStore) *PasteController {
 	return ctrl
 }
 
-// ServeEditPage serves the page for creating pastes.
-func (ctrl *PasteController) ServeEditPage(w http.ResponseWriter, r *http.Request) {
+// ServeWritePage serves the page for creating pastes.
+func (ctrl *PasteController) ServeWritePage(w http.ResponseWriter, r *http.Request) {
 	// Because Viewer role can't write pastes, redirect to a more meaningful page
 	user := session.User(r)
 	if user != nil && user.Role == config.RoleViewer {
@@ -39,25 +39,25 @@ func (ctrl *PasteController) ServeEditPage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ctx := ctrl.view.NewPasteEditorContext(r)
-	ctrl.view.Edit.Render(w, ctx)
+	ctx := ctrl.view.NewWritePasteContext(r)
+	ctrl.view.Write.Render(w, ctx)
 }
 
 // ServeViewPage serves the page for viewing individual pastes.
 func (ctrl *PasteController) ServeViewPage(w http.ResponseWriter, r *http.Request) {
 	id, err := httpext.ParseID(r)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to read paste:", err.Error()))
+		httpext.InternalError(w, err.Error())
 		return
 	}
 
 	paste, err := ctrl.store.FindByID(id)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to read paste:", err.Error()))
+		httpext.InternalError(w, err.Error())
 		return
 	}
 
-	ctx := ctrl.view.NewPasteViewerContext(r, paste)
+	ctx := ctrl.view.NewViewPasteContext(r, paste)
 	ctrl.view.View.Render(w, ctx)
 }
 
@@ -65,13 +65,13 @@ func (ctrl *PasteController) ServeViewPage(w http.ResponseWriter, r *http.Reques
 func (ctrl *PasteController) ServeRawPaste(w http.ResponseWriter, r *http.Request) {
 	id, err := httpext.ParseID(r)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to read raw paste:", err.Error()))
+		httpext.InternalError(w, err.Error())
 		return
 	}
 
 	paste, err := ctrl.store.FindByID(id)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to read raw paste:", err.Error()))
+		httpext.InternalError(w, err.Error())
 		return
 	}
 
@@ -92,10 +92,10 @@ func (ctrl *PasteController) ServeListPage(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintf("failed to read pastes: %s", err.Error()))
+		httpext.InternalError(w, err.Error())
 	}
 
-	ctx := ctrl.view.NewPasteListContext(r, pastes)
+	ctx := ctrl.view.NewListPastesContext(r, pastes)
 	ctrl.view.List.Render(w, ctx)
 }
 
@@ -103,13 +103,13 @@ func (ctrl *PasteController) ServeListPage(w http.ResponseWriter, r *http.Reques
 func (ctrl *PasteController) CreatePaste(w http.ResponseWriter, r *http.Request) {
 	template, err := parseTemplate(r)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to create new paste:", err))
+		httpext.InternalError(w, fmt.Sprintln(err))
 		return
 	}
 
 	paste, err := ctrl.store.Insert(template)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to create new paste:", err))
+		httpext.InternalError(w, fmt.Sprintln(err))
 		return
 	}
 
@@ -129,12 +129,12 @@ func parseTemplate(r *http.Request) (*model.PasteTemplate, error) {
 
 	duration, err := strconv.ParseInt(values.Get("expiry"), 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse paste: %s", err)
+		duration = 0
 	}
 
-	visibility, err := strconv.ParseInt(values.Get("visibility"), 10, 32)
+	visibility, err := strconv.Atoi(values.Get("visibility"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse paste: %s", err)
+		visibility = int(config.VisibilityUnlisted)
 	}
 
 	pasteTmpl := model.PasteTemplate{

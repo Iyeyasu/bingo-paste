@@ -1,4 +1,4 @@
-log_level: info
+log_level: debug
 
 theme:
   default: light
@@ -14,12 +14,19 @@ db:
   ssl: disable
 
 auth:
-  enabled: false
+  enabled: true
   default_mode: standard
   default_role: editor
   registration: true
-  session_name: session_bingo
-  secure_cookie: false
+  session:
+    name: session_bingo
+    secure_cookie: false
+    store:
+      type: redis
+      host: redis
+      port: 6379
+      password: ""
+      database: 0
 
 expiry:
   enabled: true

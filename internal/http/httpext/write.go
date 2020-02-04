@@ -6,7 +6,7 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/util/log"
 )
 
 // WriteDefaultHeaders writes default headers to the HTTP response.

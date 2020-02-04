@@ -1,0 +1,46 @@
+.notification-container {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  top: 7rem;
+  right: 2rem;
+  pointer-events: none;
+}
+
+.notification {
+   margin: 1rem;
+  padding: 1rem;
+  pointer-events: none;
+  color: var(--color-text-header);
+  -webkit-animation: notification-hide 10s forwards;
+  animation: notification-hide 10s forwards;
+  box-shadow: 0 1px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.notification--error {
+  background-color:#ff5656;
+}
+
+.notification--success {
+  background-color: #229b4c;
+}
+
+.notification__title {
+  font-size: 1.2rem;
+  margin-bottom: 0.2rem;
+}
+
+.notification__body {
+  font-size: 1rem;
+}
+
+@keyframes notification-hide {
+    0%   {opacity: 1;}
+    90%  {opacity: 1;}
+    100% {opacity: 0;}
+}
+@-webkit-keyframes notification-hide {
+    0%   {opacity: 1;}
+    90%  {opacity: 1;}
+    100% {opacity: 0;}
+}

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/util/log"
 )
 
 var pasteColumns = "title, raw_content, formatted_content, visibility, time_created, time_expires, language"
@@ -43,18 +43,18 @@ func (q *PasteQuery) createTable(db *sql.DB) {
 
 		CREATE TABLE IF NOT EXISTS pastes (
 			id bigint PRIMARY KEY DEFAULT pseudo_encrypt(nextval('pastes_id_seq')),
-			title varchar(128) NOT NULL,
+			title text NOT NULL,
 			raw_content text NOT NULL,
 			formatted_content text NOT NULL,
 			visibility int NOT NULL,
 			time_created bigint NOT NULL,
-			time_expires bigint NOT NULL,
-			language varchar(32) NOT NULL,
+			time_expires bigint,
+			language text NOT NULL,
 			tsv TSVECTOR
 		);
 
 		ALTER SEQUENCE pastes_id_seq OWNED BY pastes.id;
-		CREATE INDEX IF NOT EXISTS pastes_time_expires_visibility_idx ON pastes (time_expires, visibility);
+		CREATE INDEX IF NOT EXISTS pastes_time_expires_id_idx ON pastes (time_expires, id);
 		CREATE INDEX IF NOT EXISTS pastes_tsv_idx ON pastes USING GIN(tsv)
 		`
 	_, err := db.Exec(query)
@@ -69,9 +69,9 @@ func (q *PasteQuery) createInsertStatement(db *sql.DB) *sql.Stmt {
 	query := fmt.Sprintf(`
 		INSERT INTO pastes (%s, tsv)
 		VALUES ($1, $2, $3, $4, $5, $6, $7,
-			setweight(to_tsvector(CAST($1 AS varchar)), 'A')
+			setweight(to_tsvector($1), 'A')
 			|| setweight(to_tsvector(replace($2, '.', ' ')), 'B')
-			|| setweight(to_tsvector('simple', CAST($7 AS varchar)), 'C'))
+			|| setweight(to_tsvector('simple', $7), 'C'))
 		RETURNING id, %s
 		`, pasteColumns, pasteColumns)
 
@@ -87,7 +87,7 @@ func (q *PasteQuery) createFindByIDStatement(db *sql.DB) *sql.Stmt {
 		SELECT id, %s
 		FROM pastes
 		WHERE id = $1
-		AND time_expires > $2
+		AND (time_expires IS NULL OR time_expires > $2)
 		`, pasteColumns)
 
 	stmt, err := db.Prepare(query)
@@ -101,8 +101,8 @@ func (q *PasteQuery) createFindRangeStatement(db *sql.DB) *sql.Stmt {
 	query := fmt.Sprintf(`
 		SELECT id, %s
 		FROM pastes
-		WHERE time_expires > $1
-		AND visibility >= $2
+		WHERE visibility >= $1
+		AND (time_expires IS NULL OR time_expires > $2)
 		ORDER BY time_created DESC, id ASC
 		LIMIT $3 OFFSET $4
 		`, pasteColumns)
@@ -118,8 +118,8 @@ func (q *PasteQuery) createSearchStatement(db *sql.DB) *sql.Stmt {
 	query := fmt.Sprintf(`
 		SELECT id, %s
 		FROM pastes
-		WHERE time_expires > $1
-		AND visibility >= $2
+		WHERE visibility >= $1
+		AND (time_expires IS NULL OR time_expires > $2)
 		AND tsv @@ plainto_tsquery($3)
 		ORDER BY time_created DESC, id ASC
 		LIMIT $4 OFFSET $5

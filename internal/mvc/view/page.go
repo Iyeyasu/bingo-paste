@@ -6,12 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/config"
-	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
-	"github.com/Iyeyasu/bingo-paste/internal/session"
-	"github.com/Iyeyasu/bingo-paste/internal/util/fmtutil"
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/config"
+	"bingo/internal/http/httpext"
+	"bingo/internal/mvc/model"
+	"bingo/internal/session"
+	"bingo/internal/util/fmtutil"
 )
 
 // Page represents a single HTML template page.
@@ -22,10 +21,11 @@ type Page struct {
 
 // PageContext represents a rendering context for a page template.
 type PageContext struct {
-	Page        *Page
-	CurrentUser *model.User
-	Filter      string
-	Config      *config.Config
+	Page          *Page
+	Config        *config.Config
+	CurrentUser   *model.User
+	SearchFilter  string
+	ShowSearchbar bool
 }
 
 // NewPage creates a new Page.
@@ -39,10 +39,11 @@ func NewPage(name string, paths []string) *Page {
 // NewPageContext creates a new PageContext.
 func NewPageContext(r *http.Request, page *Page) PageContext {
 	return PageContext{
-		Page:        page,
-		Filter:      r.URL.Query().Get("search"),
-		CurrentUser: session.User(r),
-		Config:      config.Get(),
+		Page:          page,
+		Config:        config.Get(),
+		CurrentUser:   session.User(r),
+		SearchFilter:  r.URL.Query().Get("search"),
+		ShowSearchbar: true,
 	}
 }
 
@@ -69,30 +70,26 @@ func newFuncMap() template.FuncMap {
 }
 
 func unescape(str string) template.HTML {
-	log.Tracef("Template Function: unescaped HTML templates", str)
 	return template.HTML(str)
 }
 
 func duration(duration time.Duration) int64 {
 	result := int64(duration)
-	log.Tracef("Template Function: formatted duration %s to %d", duration, result)
 	return result
 }
 
 func formatExpiry(duration time.Duration, limit int) string {
 	var result string
 	if duration <= 0 {
-		result = "Read Once"
+		result = "Keep Forever"
 	} else {
 		result = fmtutil.FormatDuration(duration, limit)
 	}
 
-	log.Tracef("Template Function: formatted expiry duration %d -> %s", duration, result)
 	return result
 }
 
 func formatPastDate(date time.Time) string {
 	result := fmt.Sprintf("%s ago", fmtutil.FormatDuration(time.Now().Sub(date), 1))
-	log.Tracef("Template Function: formatted past date %s", result)
 	return result
 }

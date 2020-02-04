@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/util/log"
 )
 
 var (

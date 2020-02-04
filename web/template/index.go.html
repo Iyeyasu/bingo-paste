@@ -1,6 +1,6 @@
 {{ define "index" }}
 
-<html lang="en" data-theme="{{ if .CurrentUser }} {{ .CurrentUser.Theme.String }} {{ else }} {{ .Config.Theme.Default.String }} {{ end }}">
+<html lang="en" data-theme="{{ if .CurrentUser }}{{ .CurrentUser.Theme.String }}{{ else }}{{ .Config.Theme.Default.String }}{{ end }}">
 
 <head>
     <meta charset="utf-8">
@@ -9,6 +9,17 @@
 </head>
 
 <body>
+    {{/* <div class="notification-container">
+        <div class="notification notification--error">
+            <div class="notification__title">Test Error Notification</div>
+            <div class="notification__body">This is a test notification for server errors</div>
+        </div>
+        <div class="notification notification--success">
+            <div class="notification__title">Test Success Notification</div>
+            <div class="notification__body">This is a test notification for when a user succesfully completes an action</div>
+        </div>
+    </div> */}}
+
     {{ template "header" . }}
     {{ template "content" . }}
 

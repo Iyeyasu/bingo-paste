@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/http/httpext"
+	"bingo/internal/util/log"
 )
 
 // Log handles logging HTTP requests.

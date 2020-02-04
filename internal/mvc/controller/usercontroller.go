@@ -9,13 +9,13 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/Iyeyasu/bingo-paste/internal/config"
-	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model/store"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
-	"github.com/Iyeyasu/bingo-paste/internal/session"
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/config"
+	"bingo/internal/http/httpext"
+	"bingo/internal/mvc/model"
+	"bingo/internal/mvc/model/store"
+	"bingo/internal/mvc/view"
+	"bingo/internal/session"
+	"bingo/internal/util/log"
 )
 
 // UserController serves the view for creating and controllering users.
@@ -39,7 +39,7 @@ func NewUserController(store *store.UserStore) *UserController {
 
 // ServeCreatePage serves the view for editing and creating a user.
 func (ctrl *UserController) ServeCreatePage(w http.ResponseWriter, r *http.Request) {
-	ctx := ctrl.view.NewUserEditContext(r, nil)
+	ctx := ctrl.view.NewEditUserContext(r, nil)
 	ctrl.view.Edit.Render(w, ctx)
 }
 
@@ -51,7 +51,7 @@ func (ctrl *UserController) ServeProfilePage(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ctx := ctrl.view.NewUserProfileContext(r, user)
+	ctx := ctrl.view.NewEditProfileContext(r, user)
 	ctrl.view.Profile.Render(w, ctx)
 }
 
@@ -69,7 +69,7 @@ func (ctrl *UserController) ServeEditPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ctx := ctrl.view.NewUserEditContext(r, user)
+	ctx := ctrl.view.NewEditUserContext(r, user)
 	ctrl.view.Edit.Render(w, ctx)
 }
 
@@ -81,7 +81,7 @@ func (ctrl *UserController) ServeListPage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ctx := ctrl.view.NewUserListContext(r, users)
+	ctx := ctrl.view.NewListUsersContext(r, users)
 	ctrl.view.List.Render(w, ctx)
 }
 

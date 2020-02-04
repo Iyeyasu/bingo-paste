@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/config"
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/config"
+	"bingo/internal/util/log"
 
 	// Postgresql driver
 	_ "github.com/lib/pq"

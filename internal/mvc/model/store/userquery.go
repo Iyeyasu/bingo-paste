@@ -3,7 +3,7 @@ package store
 import (
 	"database/sql"
 
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/util/log"
 )
 
 type userQuery struct {
@@ -92,7 +92,7 @@ func createFindByEmailStatement(db *sql.DB) *sql.Stmt {
 }
 
 func createFindRangeStatement(db *sql.DB) *sql.Stmt {
-	stmt, err := db.Prepare("SELECT * FROM users ORDER BY name DESC, id ASC LIMIT $1 OFFSET $2")
+	stmt, err := db.Prepare("SELECT * FROM users ORDER BY role DESC, name ASC, id ASC LIMIT $1 OFFSET $2")
 	if err != nil {
 		log.Fatalf("Failed to create select user list statement: %s", err)
 	}

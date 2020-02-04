@@ -9,10 +9,16 @@ import (
 // TrimStrings handles trimming accidental whitespaces from HTTP url encoded requests.
 func TrimStrings(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// if r.Method != http.MethodPost {
-		// 	next.ServeHTTP(w, r)
-		// 	return
-		// }
+		if r.Method != http.MethodPost {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		contentType := r.Header.Get("Content-Type")
+		if contentType != "application/x-www-form-urlencoded" {
+			next.ServeHTTP(w, r)
+			return
+		}
 
 		// body, err := ioutil.ReadAll(r.Body)
 		// if err != nil {

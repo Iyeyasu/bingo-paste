@@ -9,7 +9,7 @@
         <textarea name="content" class="card__body" pattern=".*\S+.*" title="Paste content required" required></textarea>
 
         <div class="card__footer">
-            {{ if (len .Config.Highlight.Languages) }}
+            {{ if len .Config.Highlight.Languages }}
             <div class="card__control card__dropdown">
                 <svg class="card__control__icon card__control__icon--right" viewBox="0 0 14 16" version="1.1">
                     <path fill-rule="evenodd"

@@ -3,7 +3,7 @@ package view
 import (
 	"net/http"
 
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
+	"bingo/internal/mvc/model"
 )
 
 // UserView represents the view used to render users.
@@ -13,14 +13,14 @@ type UserView struct {
 	List    *Page
 }
 
-// UserEditContext represents a rendering context for the User Edit page.
-type UserEditContext struct {
+// EditUserContext represents a rendering context for the User Edit page.
+type EditUserContext struct {
 	PageContext
 	User *model.User
 }
 
-// UserListContext represents a rendering context for the User List page.
-type UserListContext struct {
+// ListUsersContext represents a rendering context for the User List page.
+type ListUsersContext struct {
 	PageContext
 	Users []*model.User
 }
@@ -29,7 +29,7 @@ type UserListContext struct {
 func NewUserView() *UserView {
 	editPaths := []string{
 		"web/template/*.go.html",
-		"web/template/user/editor/*.go.html",
+		"web/template/user/edit/*.go.html",
 		"web/css/common/*.css",
 	}
 
@@ -46,25 +46,25 @@ func NewUserView() *UserView {
 	return v
 }
 
-// NewUserProfileContext creates a new UserEditContext.
-func (v *UserView) NewUserProfileContext(r *http.Request, user *model.User) UserEditContext {
-	return UserEditContext{
+// NewEditProfileContext creates a new EditUserContext.
+func (v *UserView) NewEditProfileContext(r *http.Request, user *model.User) EditUserContext {
+	return EditUserContext{
 		User:        user,
 		PageContext: NewPageContext(r, v.Profile),
 	}
 }
 
-// NewUserEditContext creates a new UserEditContext.
-func (v *UserView) NewUserEditContext(r *http.Request, user *model.User) UserEditContext {
-	return UserEditContext{
+// NewEditUserContext creates a new EditUserContext.
+func (v *UserView) NewEditUserContext(r *http.Request, user *model.User) EditUserContext {
+	return EditUserContext{
 		User:        user,
 		PageContext: NewPageContext(r, v.Edit),
 	}
 }
 
-// NewUserListContext creates a new UserListContext.
-func (v *UserView) NewUserListContext(r *http.Request, users []*model.User) UserListContext {
-	return UserListContext{
+// NewListUsersContext creates a new ListUsersContext.
+func (v *UserView) NewListUsersContext(r *http.Request, users []*model.User) ListUsersContext {
+	return ListUsersContext{
 		Users:       users,
 		PageContext: NewPageContext(r, v.List),
 	}

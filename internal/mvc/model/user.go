@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/config"
+	"bingo/internal/config"
 )
 
 // User represents an authenticated user.

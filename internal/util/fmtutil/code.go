@@ -4,7 +4,8 @@ import (
 	"html"
 	"strings"
 
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/util/log"
+
 	"github.com/alecthomas/chroma"
 	htmlf "github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"

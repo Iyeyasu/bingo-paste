@@ -33,22 +33,41 @@ type AuthConfig struct {
 	DefaultRole    Role     `yaml:"-"`
 	RawDefaultRole string   `yaml:"default_role"`
 	Registration   bool     `yaml:"registration"`
-	SessionName    string   `yaml:"session_name"`
-	SecureCookie   bool     `yaml:"secure_cookie"`
+
+	Session struct {
+		Name         string `yaml:"name"`
+		SecureCookie bool   `yaml:"secure_cookie"`
+
+		Store struct {
+			Type     string `yaml:"type"`
+			Host     string `yaml:"host"`
+			Port     int    `yaml:"port"`
+			Password string `yaml:"password"`
+			Database int    `yaml:"database"`
+		} `yaml:"store"`
+	} `yaml:"session"`
 }
 
 // DefaultAuthConfig creates a new AuthConfig with default values.
 func DefaultAuthConfig() AuthConfig {
-	return AuthConfig{
+	config := AuthConfig{
 		Enabled:        false,
 		DefaultMode:    AuthStandard,
 		RawDefaultMode: "standard",
 		DefaultRole:    RoleEditor,
 		RawDefaultRole: "editor",
 		Registration:   false,
-		SessionName:    "session_bingo",
-		SecureCookie:   false,
 	}
+
+	config.Session.Name = "session_bingo"
+	config.Session.SecureCookie = false
+
+	config.Session.Store.Type = "memory"
+	config.Session.Store.Host = "localhost"
+	config.Session.Store.Port = 6379
+	config.Session.Store.Password = ""
+	config.Session.Store.Database = 0
+	return config
 }
 
 func newAuthMode(authMode string) AuthMode {
@@ -93,7 +112,7 @@ func (role Role) String() string {
 	case RoleEditor:
 		return "Editor"
 	case RoleViewer:
-		return "Editor"
+		return "Viewer"
 	default:
 		return "<invalid_theme>"
 	}

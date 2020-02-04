@@ -4,7 +4,8 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/util/log"
+
 	"gopkg.in/yaml.v2"
 )
 

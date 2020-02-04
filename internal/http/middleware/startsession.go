@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/Iyeyasu/bingo-paste/internal/session"
+	"bingo/internal/session"
 )
 
 type contextKey string

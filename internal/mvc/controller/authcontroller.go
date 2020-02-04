@@ -7,14 +7,14 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/Iyeyasu/bingo-paste/internal/config"
-	"github.com/Iyeyasu/bingo-paste/internal/http/httpext"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/model/store"
-	"github.com/Iyeyasu/bingo-paste/internal/mvc/view"
-	"github.com/Iyeyasu/bingo-paste/internal/session"
-	"github.com/Iyeyasu/bingo-paste/internal/util/auth"
-	"github.com/Iyeyasu/bingo-paste/internal/util/log"
+	"bingo/internal/config"
+	"bingo/internal/http/httpext"
+	"bingo/internal/mvc/model"
+	"bingo/internal/mvc/model/store"
+	"bingo/internal/mvc/view"
+	"bingo/internal/session"
+	"bingo/internal/util/auth"
+	"bingo/internal/util/log"
 )
 
 // AuthController handles user authentication.

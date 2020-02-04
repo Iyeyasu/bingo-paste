@@ -8,16 +8,6 @@ type AuthView struct {
 	Register *Page
 }
 
-// LoginContext represents a rendering context for the Login page.
-type LoginContext struct {
-	PageContext
-}
-
-// RegisterContext represents a rendering context for the Register page.
-type RegisterContext struct {
-	PageContext
-}
-
 // NewAuthView creates a new AuthView.
 func NewAuthView() *AuthView {
 	loginPaths := []string{
@@ -39,15 +29,15 @@ func NewAuthView() *AuthView {
 }
 
 // NewLoginContext creates a new AuthContext.
-func (v *AuthView) NewLoginContext(r *http.Request) LoginContext {
-	return LoginContext{
-		PageContext: NewPageContext(r, v.Login),
-	}
+func (v *AuthView) NewLoginContext(r *http.Request) PageContext {
+	ctx := NewPageContext(r, v.Login)
+	ctx.ShowSearchbar = false
+	return ctx
 }
 
 // NewRegisterContext creates a new AuthContext.
-func (v *AuthView) NewRegisterContext(r *http.Request) RegisterContext {
-	return RegisterContext{
-		PageContext: NewPageContext(r, v.Register),
-	}
+func (v *AuthView) NewRegisterContext(r *http.Request) PageContext {
+	ctx := NewPageContext(r, v.Login)
+	ctx.ShowSearchbar = false
+	return ctx
 }

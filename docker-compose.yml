@@ -1,8 +1,9 @@
 version: '3'
 services:
   db:
-    container_name: bingo-db
     image: postgres:alpine
+    container_name: bingo-db
+    restart: unless-stopped
     volumes:
       - db:/var/lib/postgresql/data
     environment:
@@ -10,11 +11,20 @@ services:
       - POSTGRES_USER=bingo
       - POSTGRES_PASSWORD=bingo
 
+  redis:
+    image: redis:alpine
+    container_name: bingo-redis
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+
   app:
-    container_name: bingo-app
     image: bingo:latest
+    container_name: bingo-app
+    restart: unless-stopped
     depends_on:
       - db
+      - redis
     volumes:
       - ./config/bingo.example.yml:/bingo/bingo.yml
     ports:
@@ -22,3 +32,4 @@ services:
 
 volumes:
   db:
+  redis:
