@@ -2,37 +2,34 @@ package store
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"bingo/internal/mvc/model"
 	"bingo/internal/util/auth"
 	"bingo/internal/util/log"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // UserStore is the store for users.
 type UserStore struct {
-	Database *sql.DB
-	query    *userQuery
+	Database *sqlx.DB
 }
 
 // NewUserStore creates a new UserStore.
-func NewUserStore(db *sql.DB) *UserStore {
+func NewUserStore(db *sqlx.DB) *UserStore {
 	log.Debug("Initializing user store")
 	store := new(UserStore)
 	store.Database = db
-	store.query = newUserQuery(db)
-	log.Debugf("User store initialized (%d users)", store.Count())
 	return store
 }
 
 // Count returns the number of users.
 func (store *UserStore) Count() int64 {
-	count := int64(0)
-	err := store.query.count.QueryRow().Scan(&count)
-	if err != nil {
-		log.Fatalf("Failed to get user count: %s", err)
-	}
+	log.Debugf("Counting number of users")
+
+	var count int64
+	store.Database.Get(&count, "SELECT COUNT(*) FROM users")
 	return count
 }
 
@@ -40,36 +37,69 @@ func (store *UserStore) Count() int64 {
 func (store *UserStore) FindByID(id int64) (*model.User, error) {
 	log.Debugf("Retrieving user %d from database", id)
 
-	row := store.query.findByID.QueryRow(id)
-	return store.scanRow(row)
+	query := `
+		SELECT id, time_created, name, email, password_hash, auth_mode, auth_external_id, role, theme
+		FROM users
+		WHERE id = $1
+		`
+
+	user := new(model.User)
+	err := store.Database.Get(user, query, id)
+	return user, err
 }
 
 // FindByName returns the user with the given name from the database.
 func (store *UserStore) FindByName(name string) (*model.User, error) {
 	log.Debugf("Retrieving user with name '%s' from database", name)
 
-	row := store.query.findByName.QueryRow(name)
-	return store.scanRow(row)
+	query := `
+		SELECT id, time_created, name, email, password_hash, auth_mode, auth_external_id, role, theme
+		FROM users
+		WHERE lower(name) = lower($1)
+		`
+
+	user := new(model.User)
+	err := store.Database.Get(user, query, name)
+	return user, err
 }
 
 // FindByEmail returns the user with the given email from the database.
 func (store *UserStore) FindByEmail(email string) (*model.User, error) {
 	log.Debugf("Retrieving user with mail '%s' from database", email)
 
-	row := store.query.findByEmail.QueryRow(email)
-	return store.scanRow(row)
+	query := `
+		SELECT id, time_created, name, email, password_hash, auth_mode, auth_external_id, role, theme
+		FROM users
+		WHERE email ILIKE $1
+		`
+
+	user := new(model.User)
+	err := store.Database.Get(user, query, email)
+	return user, err
 }
 
 // FindRange returns a slice of public users sorted by their creation time.
-func (store *UserStore) FindRange(limit int64, offset int64) ([]*model.User, error) {
+func (store *UserStore) FindRange(limit int64, offset int64) ([]model.User, error) {
 	log.Debugf("Retrieving %d public users starting from user number %d from database", limit, offset)
 
-	rows, err := store.query.findRange.Query(limit, offset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve users: %s", err)
-	}
+	query := `
+		SELECT id, time_created, name, email, password_hash, auth_mode, auth_external_id, role, theme
+		FROM users
+		ORDER BY role DESC, name ASC, id ASC
+		LIMIT $1 OFFSET $2
+		`
 
-	return store.scanRows(rows)
+	users := []model.User{}
+	err := store.Database.Select(&users, query, limit, offset)
+	return users, err
+}
+
+// Delete deletes the user with the given id from the database.
+func (store *UserStore) Delete(id int64) error {
+	log.Debugf("Deleting user %d from database", id)
+
+	_, err := store.Database.Exec("DELETE FROM users WHERE id = $1", id)
+	return err
 }
 
 // Insert inserts a new user to the database.
@@ -77,13 +107,29 @@ func (store *UserStore) Insert(userTmpl *model.UserTemplate) (*model.User, error
 	log.Debug("Inserting new user to database")
 	log.Tracef("%+v", userTmpl)
 
+	query := `
+		INSERT INTO users (
+				time_created,
+				password_hash,
+				name,
+				email,
+				auth_mode,
+				auth_external_id,
+				role,
+				theme)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING *
+	`
+
 	passwordHash, err := auth.HashPassword(userTmpl.Password.String)
 	if err != nil {
 		return nil, err
 	}
 
-	row := store.query.insert.QueryRow(
-		time.Now().Unix(),
+	user := new(model.User)
+	err = store.Database.QueryRowx(
+		query,
+		time.Now().UTC(),
 		passwordHash,
 		userTmpl.Name,
 		userTmpl.Email,
@@ -91,15 +137,29 @@ func (store *UserStore) Insert(userTmpl *model.UserTemplate) (*model.User, error
 		userTmpl.AuthExternalID,
 		userTmpl.Role,
 		userTmpl.Theme,
-	)
+	).StructScan(user)
 
-	return store.scanRow(row)
+	return user, err
 }
 
 // Update Updates an existing user in the database.
 func (store *UserStore) Update(userTmpl *model.UserTemplate) (*model.User, error) {
 	log.Debug("Updating existing user in the database")
 	log.Tracef("%+v", userTmpl)
+
+	query := `
+		UPDATE users
+		SET
+			password_hash 		= COALESCE($2, password_hash),
+			name 				= COALESCE($3, name),
+			email 				= COALESCE($4, email),
+			auth_mode 			= COALESCE($5, auth_mode),
+			auth_external_id 	= COALESCE($6, auth_external_id),
+			role 				= COALESCE($7, role),
+			theme 				= COALESCE($8, theme)
+		WHERE id = $1
+		RETURNING *
+	`
 
 	var passwordHash sql.NullString
 	if userTmpl.Password.Valid {
@@ -112,7 +172,9 @@ func (store *UserStore) Update(userTmpl *model.UserTemplate) (*model.User, error
 		passwordHash.Valid = true
 	}
 
-	row := store.query.update.QueryRow(
+	user := new(model.User)
+	err := store.Database.QueryRowx(
+		query,
 		userTmpl.ID,
 		passwordHash,
 		userTmpl.Name,
@@ -121,65 +183,33 @@ func (store *UserStore) Update(userTmpl *model.UserTemplate) (*model.User, error
 		userTmpl.AuthExternalID,
 		userTmpl.Role,
 		userTmpl.Theme,
-	)
+	).StructScan(user)
 
-	return store.scanRow(row)
+	return user, err
 }
 
-// Delete deletes the user with the given id from the database.
-func (store *UserStore) Delete(id int64) error {
-	log.Debugf("Deleting user %d from database", id)
+func (store *UserStore) createTable() {
+	query := `
+		CREATE SEQUENCE IF NOT EXISTS users_id_seq AS bigint;
 
-	_, err := store.query.delete.Exec(id)
+		CREATE TABLE IF NOT EXISTS users (
+			id 					bigint PRIMARY KEY DEFAULT pseudo_encrypt(nextval('users_id_seq')),
+			time_created 	    timestamptz NOT NULL,
+			password_hash 		char(60),
+			name 				varchar(32) NOT NULL,
+			email 				varchar(254) NOT NULL,
+			auth_mode 			int NOT NULL,
+			auth_external_id 	varchar(32),
+			role 				int NOT NULL,
+			theme 				int NOT NULL
+		);
+
+		ALTER SEQUENCE users_id_seq OWNED BY users.id;
+		CREATE UNIQUE INDEX IF NOT EXISTS name_lower_idx ON users (lower(name));
+	`
+
+	_, err := store.Database.Exec(query)
 	if err != nil {
-		return fmt.Errorf("failed to delete user %d: %s", id, err)
+		log.Fatalf("Failed to create table 'users': %s", err)
 	}
-
-	return nil
-}
-
-func (store *UserStore) scanRows(rows *sql.Rows) ([]*model.User, error) {
-	users := []*model.User{}
-	defer rows.Close()
-	for rows.Next() {
-		user, err := store.scanRow(rows)
-		if err == nil {
-			users = append(users, user)
-		} else {
-			log.Errorf(err.Error())
-		}
-	}
-
-	err := rows.Err()
-	if err != nil {
-		return nil, fmt.Errorf("failed to scan user rows: %s", err)
-	}
-
-	return users, nil
-}
-
-func (store *UserStore) scanRow(row model.Scannable) (*model.User, error) {
-	user := new(model.User)
-	timeCreated := int64(0)
-	authExternalID := []byte{}
-	err := row.Scan(
-		&user.ID,
-		&timeCreated,
-		&user.PasswordHash,
-		&user.Name,
-		&user.Email,
-		&user.AuthMode,
-		&authExternalID,
-		&user.Role,
-		&user.Theme,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to scan user row: %s", err)
-	}
-
-	user.TimeCreated = time.Unix(timeCreated, 0)
-	user.AuthExternalID = string(authExternalID)
-	log.Tracef("Retrieved user %+v", user)
-	return user, nil
 }

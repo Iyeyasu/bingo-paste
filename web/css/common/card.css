@@ -114,7 +114,8 @@
 
 .card__control:active,
 .card__control:focus,
-.card__control:hover {
+.card__control:hover,
+.card__dropdown > select:focus {
   outline: none;
   background-color: var(--color-bg-medium);
 }

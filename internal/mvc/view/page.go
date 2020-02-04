@@ -16,40 +16,50 @@ import (
 // Page represents a single HTML template page.
 type Page struct {
 	Name     string
+	URI      string
 	Template *template.Template
 }
 
 // PageContext represents a rendering context for a page template.
 type PageContext struct {
-	Page          *Page
-	Config        *config.Config
-	CurrentUser   *model.User
-	SearchFilter  string
-	ShowSearchbar bool
+	Page         *Page
+	Config       *config.Config
+	CurrentUser  *model.User
+	Notification *model.Notification
+	SearchFilter string
 }
 
 // NewPage creates a new Page.
-func NewPage(name string, paths []string) *Page {
+func NewPage(name string, uri string, paths []string) *Page {
 	page := new(Page)
 	page.Name = name
+	page.URI = uri
 	page.Template = newTemplate(paths)
 	return page
 }
 
 // NewPageContext creates a new PageContext.
 func NewPageContext(r *http.Request, page *Page) PageContext {
+	val := session.Get().Pop(r.Context(), model.NotificationKey)
+
+	var notification *model.Notification = nil
+	if val != nil {
+		temp := val.(model.Notification)
+		notification = &temp
+	}
+
 	return PageContext{
-		Page:          page,
-		Config:        config.Get(),
-		CurrentUser:   session.User(r),
-		SearchFilter:  r.URL.Query().Get("search"),
-		ShowSearchbar: true,
+		Page:         page,
+		Config:       config.Get(),
+		CurrentUser:  session.User(r),
+		Notification: notification,
+		SearchFilter: r.URL.Query().Get("search"),
 	}
 }
 
 // Render renders the page as a HTTP response using the given rendering context.
-func (page *Page) Render(w http.ResponseWriter, ctx interface{}) {
-	httpext.WriteTemplate(w, page.Template, ctx)
+func (page *Page) Render(w http.ResponseWriter, ctx interface{}) error {
+	return httpext.WriteTemplate(w, page.Template, ctx)
 }
 
 func newTemplate(paths []string) *template.Template {

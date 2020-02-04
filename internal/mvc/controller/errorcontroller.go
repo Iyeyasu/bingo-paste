@@ -8,18 +8,33 @@ import (
 
 // ErrorController handles displaying errors.
 type ErrorController struct {
-	view *view.ErrorView
+	errorView *view.ErrorView
 }
 
 // NewErrorController creates a new ErrorController.
 func NewErrorController() *ErrorController {
 	ctrl := new(ErrorController)
-	ctrl.view = view.NewErrorView()
+	ctrl.errorView = view.NewErrorView()
 	return ctrl
 }
 
-// ServeErrorPage serves the error page.
-func (ctrl *ErrorController) ServeErrorPage(w http.ResponseWriter, r *http.Request) {
-	ctx := ctrl.view.NewErrorContext(r)
-	ctrl.view.Error.Render(w, ctx)
+// ServeNotFoundError serves a 404 not found error.
+func (ctrl *ErrorController) ServeNotFoundError(w http.ResponseWriter, r *http.Request) {
+	ctrl.ServeErrorPage(w, r, http.StatusNotFound, http.StatusText(http.StatusNotFound))
+}
+
+// ServeUnauthorizedError serves a 401 unauthorized error.
+func (ctrl *ErrorController) ServeUnauthorizedError(w http.ResponseWriter, r *http.Request) {
+	ctrl.ServeErrorPage(w, r, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
+}
+
+// ServeInternalServerError serves a 500 internal server error.
+func (ctrl *ErrorController) ServeInternalServerError(w http.ResponseWriter, r *http.Request, text string) {
+	ctrl.ServeErrorPage(w, r, http.StatusInternalServerError, text)
+}
+
+// ServeErrorPage serves an error page with a custom message.
+func (ctrl *ErrorController) ServeErrorPage(w http.ResponseWriter, r *http.Request, code int, text string) {
+	ctx := ctrl.errorView.NewErrorContext(r, code, text)
+	ctrl.errorView.Error.Render(w, ctx)
 }

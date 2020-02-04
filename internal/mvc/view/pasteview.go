@@ -22,7 +22,7 @@ type ViewPasteContext struct {
 // ListPastesContext represents a rendering context for the List Pastes page.
 type ListPastesContext struct {
 	PageContext
-	Pastes []*model.Paste
+	Pastes []model.Paste
 }
 
 // NewPasteView creates a new ErrorView.
@@ -49,9 +49,9 @@ func NewPasteView() *PasteView {
 	}
 
 	v := new(PasteView)
-	v.Write = NewPage("Write Paste", writePaths)
-	v.List = NewPage("List Pastes", listPaths)
-	v.View = NewPage("View Paste", viewPaths)
+	v.Write = NewPage("Write Paste", "/", writePaths)
+	v.List = NewPage("List Pastes", "/pastes", listPaths)
+	v.View = NewPage("View Paste", "/paste/:id", viewPaths)
 	return v
 }
 
@@ -69,7 +69,7 @@ func (v *PasteView) NewViewPasteContext(r *http.Request, paste *model.Paste) Vie
 }
 
 // NewListPastesContext creates a new PasteListContext.
-func (v *PasteView) NewListPastesContext(r *http.Request, pastes []*model.Paste) ListPastesContext {
+func (v *PasteView) NewListPastesContext(r *http.Request, pastes []model.Paste) ListPastesContext {
 	return ListPastesContext{
 		Pastes:      pastes,
 		PageContext: NewPageContext(r, v.List),

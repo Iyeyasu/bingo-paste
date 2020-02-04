@@ -2,13 +2,14 @@ package store
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"bingo/internal/config"
 	"bingo/internal/mvc/model"
 	"bingo/internal/util/fmtutil"
 	"bingo/internal/util/log"
+
+	"github.com/jmoiron/sqlx"
 )
 
 var (
@@ -17,15 +18,16 @@ var (
 
 // PasteStore is the store for pastes.
 type PasteStore struct {
-	query *PasteQuery
+	Database *sqlx.DB
 }
 
 // NewPasteStore creates a new PasteStore instance.
-func NewPasteStore(db *sql.DB) *PasteStore {
+func NewPasteStore(db *sqlx.DB) *PasteStore {
 	log.Debug("Initializing paste store")
 
 	store := new(PasteStore)
-	store.query = NewPasteQuery(db)
+	store.Database = db
+	store.createTable()
 
 	if config.Get().Expiry.Enabled {
 		go store.monitorExpired()
@@ -34,109 +36,133 @@ func NewPasteStore(db *sql.DB) *PasteStore {
 	return store
 }
 
-// Insert inserts a new paste to the database.
-func (store *PasteStore) Insert(pasteTmpl *model.PasteTemplate) (*model.Paste, error) {
-	log.Debug("Inserting new paste to database")
+// Count returns the number of pastes.
+func (store *PasteStore) Count() int64 {
+	log.Debugf("Counting number of pastes")
 
-	timeCreated := time.Now().UTC()
-	timeExpires := timeCreated.Add(pasteTmpl.Duration)
-	formatted := fmtutil.FormatCode(pasteTmpl.Language, pasteTmpl.RawContent)
-	row := store.query.insert.QueryRow(
-		pasteTmpl.Title,
-		pasteTmpl.RawContent,
-		formatted,
-		pasteTmpl.Visibility,
-		timeCreated,
-		sql.NullTime{Time: timeExpires, Valid: pasteTmpl.Duration > 0},
-		pasteTmpl.Language,
-	)
-
-	return store.scanRow(row)
+	var count int64
+	store.Database.Get(&count, "SELECT COUNT(*) FROM pastes")
+	return count
 }
 
 // FindByID returns the paste with the given id from the database.
 func (store *PasteStore) FindByID(id int64) (*model.Paste, error) {
 	log.Debugf("Retrieving paste %d from database", id)
 
-	row := store.query.findByID.QueryRow(id, time.Now().UTC())
-	return store.scanRow(row)
+	query := `
+		SELECT id, time_created, title, raw_content, formatted_content, language, time_expires, visibility
+		FROM pastes
+		WHERE id = $1
+		AND (time_expires IS NULL OR time_expires > $2)
+		`
+
+	paste := new(model.Paste)
+	err := store.Database.Get(paste, query, id, time.Now().UTC())
+	return paste, err
 }
 
 // FindRange returns a slice of public pastes sorted by their creation time.
-func (store *PasteStore) FindRange(limit int64, offset int64) ([]*model.Paste, error) {
+func (store *PasteStore) FindRange(limit int64, offset int64) ([]model.Paste, error) {
 	log.Debugf("Retrieving %d public pastes starting from paste number %d from database", limit, offset)
 
-	rows, err := store.query.findRange.Query(config.VisibilityListed, time.Now().UTC(), limit, offset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve pastes: %s", err)
-	}
+	query := `
+		SELECT id, time_created, title, raw_content, formatted_content, language, time_expires, visibility
+		FROM pastes
+		WHERE visibility >= $1
+		AND (time_expires IS NULL OR time_expires > $2)
+		ORDER BY time_created DESC, id ASC
+		LIMIT $3 OFFSET $4
+		`
 
-	return store.scanRows(rows)
+	pastes := []model.Paste{}
+	err := store.Database.Select(&pastes, query, config.VisibilityListed, time.Now().UTC(), limit, offset)
+	return pastes, err
 }
 
 // Search returns a list of public pastes sorted by their creation time and matching given filter.
-func (store *PasteStore) Search(filter string, limit int64, offset int64) ([]*model.Paste, error) {
+func (store *PasteStore) Search(filter string, limit int64, offset int64) ([]model.Paste, error) {
 	log.Debugf("Retrieving %d public pastes starting from paste number %d and matching matching '%s' from database", limit, offset, filter)
 
-	rows, err := store.query.search.Query(config.VisibilityListed, time.Now().UTC(), filter, limit, offset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve pastes: %s", err)
-	}
+	query := `
+		SELECT id, time_created, title, raw_content, formatted_content, language, time_expires, visibility
+		FROM pastes
+		WHERE visibility >= $1
+		AND (time_expires IS NULL OR time_expires > $2)
+		AND tsv @@ plainto_tsquery($3)
+		ORDER BY time_created DESC, id ASC
+		LIMIT $4 OFFSET $5
+		`
 
-	return store.scanRows(rows)
+	pastes := []model.Paste{}
+	err := store.Database.Select(&pastes, query, config.VisibilityListed, time.Now().UTC(), filter, limit, offset)
+	return pastes, err
 }
 
 // Delete deletes the paste with the given id from the database.
 func (store *PasteStore) Delete(id int64) error {
 	log.Debugf("Deleting paste %d from database", id)
 
-	_, err := store.query.delete.Exec(id)
-	if err != nil {
-		return fmt.Errorf("failed to delete paste %d: %s", id, err)
-	}
-
-	return nil
+	_, err := store.Database.Exec("DELETE FROM pastes WHERE id = $1", id)
+	return err
 }
 
-func (store *PasteStore) scanRows(rows *sql.Rows) ([]*model.Paste, error) {
-	pastes := []*model.Paste{}
-	defer rows.Close()
-	for rows.Next() {
-		paste, err := store.scanRow(rows)
-		if err == nil {
-			pastes = append(pastes, paste)
-		} else {
-			log.Errorf(err.Error())
-		}
-	}
+// Insert inserts a new paste to the database.
+func (store *PasteStore) Insert(pasteTmpl *model.PasteTemplate) (*model.Paste, error) {
+	log.Debug("Inserting new paste to database")
 
-	err := rows.Err()
-	if err != nil {
-		return nil, fmt.Errorf("failed to scan paste rows: %s", err)
-	}
+	query := `
+		INSERT INTO pastes (time_created, title, raw_content, formatted_content, language, time_expires, visibility, tsv)
+		VALUES ($1, $2, $3, $4, $5, $6, $7,
+			setweight(to_tsvector($2), 'A')
+			|| setweight(to_tsvector(replace($3, '.', ' ')), 'B')
+			|| setweight(to_tsvector('simple', $5), 'C'))
+		RETURNING id, time_created, title, raw_content, formatted_content, language, time_expires, visibility
+		`
 
-	return pastes, nil
-}
-
-func (store *PasteStore) scanRow(row model.Scannable) (*model.Paste, error) {
 	paste := new(model.Paste)
+	timeCreated := time.Now().UTC()
+	timeExpires := timeCreated.Add(pasteTmpl.Duration)
+	formatted := fmtutil.FormatCode(pasteTmpl.Language, pasteTmpl.RawContent)
+	err := store.Database.QueryRowx(
+		query,
+		timeCreated,
+		pasteTmpl.Title,
+		pasteTmpl.RawContent,
+		formatted,
+		pasteTmpl.Language,
+		sql.NullTime{Time: timeExpires, Valid: pasteTmpl.Duration > 0},
+		pasteTmpl.Visibility,
+	).StructScan(paste)
 
-	var timeExpires sql.NullTime
-	err := row.Scan(
-		&paste.ID,
-		&paste.Title,
-		&paste.RawContent,
-		&paste.FormattedContent,
-		&paste.Visibility,
-		&paste.TimeCreated,
-		&timeExpires,
-		&paste.Language)
+	return paste, err
+}
 
+func (store *PasteStore) createTable() {
+	log.Debug("Creating table 'pastes'")
+
+	query := `
+		CREATE SEQUENCE IF NOT EXISTS pastes_id_seq AS bigint;
+
+		CREATE TABLE IF NOT EXISTS pastes (
+			id bigint PRIMARY KEY DEFAULT pseudo_encrypt(nextval('pastes_id_seq')),
+			time_created timestamptz NOT NULL,
+			title text NOT NULL,
+			raw_content text NOT NULL,
+			formatted_content text NOT NULL,
+			language text NOT NULL,
+			time_expires timestamptz,
+			visibility int NOT NULL,
+			tsv TSVECTOR
+		);
+
+		ALTER SEQUENCE pastes_id_seq OWNED BY pastes.id;
+		CREATE INDEX IF NOT EXISTS pastes_time_expires_id_idx ON pastes (time_expires, id);
+		CREATE INDEX IF NOT EXISTS pastes_tsv_idx ON pastes USING GIN(tsv)
+		`
+	_, err := store.Database.Exec(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scan paste row: %s", err)
+		log.Fatalln("Failed to create table 'pastes':", err)
 	}
-
-	return paste, nil
 }
 
 func (store *PasteStore) monitorExpired() {
@@ -153,14 +179,10 @@ func (store *PasteStore) monitorExpired() {
 }
 
 func (store *PasteStore) deleteExpired() (int64, error) {
-	result, err := store.query.deleteExpired.Exec(time.Now().UTC())
-	if err != nil {
-		return 0, fmt.Errorf("failed to delete expired pastes: %s", err)
-	}
-
+	result, err := store.Database.Exec("DELETE FROM pastes WHERE time_expires <= $1", time.Now().UTC())
 	count, err := result.RowsAffected()
 	if err != nil {
-		return 0, fmt.Errorf("failed to count expired pastes: %s", err)
+		return 0, err
 	}
 	return count, nil
 }

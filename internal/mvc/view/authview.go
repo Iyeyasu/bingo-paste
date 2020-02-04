@@ -23,21 +23,19 @@ func NewAuthView() *AuthView {
 	}
 
 	v := new(AuthView)
-	v.Login = NewPage("Login", loginPaths)
-	v.Register = NewPage("Register", registerPaths)
+	v.Login = NewPage("Login", "login", loginPaths)
+	v.Register = NewPage("Register", "register", registerPaths)
 	return v
 }
 
 // NewLoginContext creates a new AuthContext.
 func (v *AuthView) NewLoginContext(r *http.Request) PageContext {
 	ctx := NewPageContext(r, v.Login)
-	ctx.ShowSearchbar = false
 	return ctx
 }
 
 // NewRegisterContext creates a new AuthContext.
 func (v *AuthView) NewRegisterContext(r *http.Request) PageContext {
-	ctx := NewPageContext(r, v.Login)
-	ctx.ShowSearchbar = false
+	ctx := NewPageContext(r, v.Register)
 	return ctx
 }

@@ -9,9 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var (
-	conf *Config
-)
+var conf *Config
 
 // Config contains all settings.
 type Config struct {

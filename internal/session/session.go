@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"bingo/internal/config"
-	"bingo/internal/http/httpext"
 	"bingo/internal/mvc/model"
 	"bingo/internal/mvc/model/store"
 	"bingo/internal/util/log"
@@ -14,19 +13,22 @@ import (
 	"github.com/alexedwards/scs/v2"
 )
 
-// Default is the default session.
-var Default *Session
+var session *Session
 
 // Session handles user sessions.
 type Session struct {
 	Manager   *scs.SessionManager
-	store     *RedisStore
 	userStore *store.UserStore
 }
 
-// InitDefault initializes the default session.
-func InitDefault(store *store.UserStore) {
-	Default = New(store)
+// Init initializes the default session.
+func Init(store *store.UserStore) {
+	session = New(store)
+}
+
+// Get returns the default session.
+func Get() *scs.SessionManager {
+	return session.Manager
 }
 
 // New creates a new Session.
@@ -39,12 +41,11 @@ func New(store *store.UserStore) *Session {
 	manager.Cookie.Persist = true
 	manager.Cookie.SameSite = http.SameSiteLaxMode
 	manager.Cookie.Secure = config.Get().Authentication.Session.SecureCookie
-	manager.ErrorFunc = sessionError
 
 	if config.Get().Authentication.Session.Store == "redis" {
 		manager.Store = NewRedisStore()
 	} else if config.Get().Authentication.Session.Store == "db" {
-		manager.Store = NewPostgresStore(store.Database)
+		manager.Store = NewPostgresStore(store.Database.DB)
 	}
 
 	session := new(Session)
@@ -55,21 +56,17 @@ func New(store *store.UserStore) *Session {
 
 // User returns the active user for the session.
 func User(r *http.Request) *model.User {
-	if Default == nil {
-		return nil
-	}
-
 	cachedUser := GetRequestValue(r, "user")
 	if cachedUser != nil {
 		return cachedUser.(*model.User)
 	}
 
-	if !Default.Manager.Exists(r.Context(), "user_id") {
+	if !session.Manager.Exists(r.Context(), "user_id") {
 		return nil
 	}
 
-	id := Default.Manager.Get(r.Context(), "user_id").(int64)
-	user, err := Default.userStore.FindByID(id)
+	id := session.Manager.Get(r.Context(), "user_id").(int64)
+	user, err := session.userStore.FindByID(id)
 	if err != nil {
 		return nil
 	}
@@ -80,40 +77,36 @@ func User(r *http.Request) *model.User {
 
 // Login sets the active user for the session.
 func Login(r *http.Request, user *model.User) error {
-	if Default == nil {
-		return errors.New("failed to log in: no session configured")
+	if session.Manager == nil {
+		return errors.New("no session configured")
 	}
 
 	err := renewToken(r)
 	if err != nil {
-		Default.Manager.Clear(r.Context())
+		session.Manager.Clear(r.Context())
 		return err
 	}
 
-	Default.Manager.Put(r.Context(), "user_id", user.ID)
+	session.Manager.Put(r.Context(), "user_id", user.ID)
 	return nil
 }
 
 // Logout clears the active user for the session.
 func Logout(r *http.Request) error {
-	if Default == nil {
-		return errors.New("failed to log out: no session configured")
+	if session == nil {
+		return errors.New("no session configured")
 	}
 
 	renewToken(r)
-	Default.Manager.Clear(r.Context())
+	session.Manager.Clear(r.Context())
 	return nil
 }
 
 // Make sure to renew token to prevent session fixation attack.
 func renewToken(r *http.Request) error {
-	err := Default.Manager.RenewToken(r.Context())
+	err := session.Manager.RenewToken(r.Context())
 	if err != nil {
 		log.Debugln("Failed to renew session token:", err)
 	}
 	return err
-}
-
-func sessionError(w http.ResponseWriter, r *http.Request, err error) {
-	httpext.InternalError(w, err.Error())
 }

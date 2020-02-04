@@ -9,16 +9,21 @@
 </head>
 
 <body>
-    {{/* <div class="notification-container">
+    {{ if .Notification }}
+    <div class="notification-container">
+        {{ if eq .Notification.Type.String "Error" }}
         <div class="notification notification--error">
-            <div class="notification__title">Test Error Notification</div>
-            <div class="notification__body">This is a test notification for server errors</div>
+            <div class="notification__title">{{ .Notification.Title }}</div>
+            <div class="notification__body">{{ .Notification.Content }}</div>
         </div>
+        {{ else }}
         <div class="notification notification--success">
-            <div class="notification__title">Test Success Notification</div>
-            <div class="notification__body">This is a test notification for when a user succesfully completes an action</div>
+            <div class="notification__title">{{ .Notification.Title }}</div>
+            <div class="notification__body">{{ .Notification.Content }}</div>
         </div>
-    </div> */}}
+        {{ end }}
+    </div>
+    {{ end }}
 
     {{ template "header" . }}
     {{ template "content" . }}

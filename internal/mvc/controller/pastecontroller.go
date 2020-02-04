@@ -18,13 +18,15 @@ import (
 
 // PasteController handles creating and displaying pastes.
 type PasteController struct {
+	err   *ErrorController
 	store *store.PasteStore
 	view  *view.PasteView
 }
 
 // NewPasteController creates a new PasteController.
-func NewPasteController(store *store.PasteStore) *PasteController {
+func NewPasteController(errCtrl *ErrorController, store *store.PasteStore) *PasteController {
 	ctrl := new(PasteController)
+	ctrl.err = errCtrl
 	ctrl.store = store
 	ctrl.view = view.NewPasteView()
 	return ctrl
@@ -47,13 +49,13 @@ func (ctrl *PasteController) ServeWritePage(w http.ResponseWriter, r *http.Reque
 func (ctrl *PasteController) ServeViewPage(w http.ResponseWriter, r *http.Request) {
 	id, err := httpext.ParseID(r)
 	if err != nil {
-		httpext.InternalError(w, err.Error())
+		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to server view paste page: ", err))
 		return
 	}
 
 	paste, err := ctrl.store.FindByID(id)
 	if err != nil {
-		httpext.InternalError(w, err.Error())
+		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to server view paste page: ", err))
 		return
 	}
 
@@ -65,13 +67,13 @@ func (ctrl *PasteController) ServeViewPage(w http.ResponseWriter, r *http.Reques
 func (ctrl *PasteController) ServeRawPaste(w http.ResponseWriter, r *http.Request) {
 	id, err := httpext.ParseID(r)
 	if err != nil {
-		httpext.InternalError(w, err.Error())
+		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to serve raw paste: ", err))
 		return
 	}
 
 	paste, err := ctrl.store.FindByID(id)
 	if err != nil {
-		httpext.InternalError(w, err.Error())
+		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to serve raw paste: ", err))
 		return
 	}
 
@@ -83,7 +85,7 @@ func (ctrl *PasteController) ServeListPage(w http.ResponseWriter, r *http.Reques
 	limit, offset := httpext.ParseRange(r)
 	filter := httpext.ParseFilter(r)
 
-	var pastes []*model.Paste
+	var pastes []model.Paste
 	var err error
 	if filter == "" {
 		pastes, err = ctrl.store.FindRange(limit, offset)
@@ -92,7 +94,8 @@ func (ctrl *PasteController) ServeListPage(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err != nil {
-		httpext.InternalError(w, err.Error())
+		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to serve list pastes page: ", err))
+		return
 	}
 
 	ctx := ctrl.view.NewListPastesContext(r, pastes)
@@ -103,13 +106,13 @@ func (ctrl *PasteController) ServeListPage(w http.ResponseWriter, r *http.Reques
 func (ctrl *PasteController) CreatePaste(w http.ResponseWriter, r *http.Request) {
 	template, err := parseTemplate(r)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln(err))
+		httpext.WriteErrorNotification(w, r, "Failed to create paste", err.Error())
 		return
 	}
 
 	paste, err := ctrl.store.Insert(template)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln(err))
+		httpext.WriteErrorNotification(w, r, "Failed to create paste", err.Error())
 		return
 	}
 
@@ -119,12 +122,12 @@ func (ctrl *PasteController) CreatePaste(w http.ResponseWriter, r *http.Request)
 func parseTemplate(r *http.Request) (*model.PasteTemplate, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse paste: %s", err)
+		return nil, err
 	}
 
 	values, err := url.ParseQuery(string(body))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse paste: %s", err)
+		return nil, err
 	}
 
 	duration, err := strconv.ParseInt(values.Get("expiry"), 10, 64)

@@ -11,7 +11,7 @@
         </a>
     </div>
 
-    {{ if .ShowSearchbar }}
+    {{ if or .CurrentUser (not .Config.Authentication.Enabled) }}
     <form id="search" class="header__middle searchbar" action="/pastes" method="GET">
         <button type="submit" type="searchbar__button">
             <svg class="searchbar__icon" viewBox="0 0 16 16" version="1.1">
@@ -84,9 +84,11 @@
             </svg>
             <div>Login</div>
         </a>
+        {{ if .Config.Authentication.Registration }}
         <a class='header__link {{ if eq .Page.Name "Register" }} header__link--selected {{ end }}' href="/register">
             <div>Register</div>
         </a>
+        {{ end }}
     {{ end }}
     </div>
 </header>

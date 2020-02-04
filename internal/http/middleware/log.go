@@ -1,11 +1,9 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httputil"
 
-	"bingo/internal/http/httpext"
 	"bingo/internal/util/log"
 )
 
@@ -15,7 +13,7 @@ func Log(next http.Handler) http.Handler {
 		if log.GetLevel() >= log.TraceLevel {
 			dump, err := httputil.DumpRequest(r, true)
 			if err != nil {
-				httpext.InternalError(w, fmt.Sprintln("Failed to log HTTP request"))
+				log.Trace("Failed to log HTTP request")
 				return
 			}
 			log.Trace(string(dump))

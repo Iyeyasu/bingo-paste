@@ -12,8 +12,8 @@ type ErrorView struct {
 // ErrorContext represents a rendering context for the Error page.
 type ErrorContext struct {
 	PageContext
-	StatusCode  int
-	Description string
+	StatusCode int
+	StatusText string
 }
 
 // NewErrorView creates a new ErrorView.
@@ -26,15 +26,15 @@ func NewErrorView() *ErrorView {
 	}
 
 	view := new(ErrorView)
-	view.Error = NewPage("Error", paths)
+	view.Error = NewPage("Error", "/error", paths)
 	return view
 }
 
 // NewErrorContext creates a new ErrorContext.
-func (v *ErrorView) NewErrorContext(r *http.Request) ErrorContext {
+func (v *ErrorView) NewErrorContext(r *http.Request, code int, text string) ErrorContext {
 	return ErrorContext{
-		StatusCode:  http.StatusNotFound,
-		Description: "Page not found",
+		StatusCode:  code,
+		StatusText:  text,
 		PageContext: NewPageContext(r, v.Error),
 	}
 }

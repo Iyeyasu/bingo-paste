@@ -48,7 +48,7 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  outline: none;
+  outline-color: white;
 }
 
 .header__icon {

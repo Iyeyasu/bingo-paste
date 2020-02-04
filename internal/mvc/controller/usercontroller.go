@@ -20,13 +20,15 @@ import (
 
 // UserController serves the view for creating and controllering users.
 type UserController struct {
+	err   *ErrorController
 	store *store.UserStore
 	view  *view.UserView
 }
 
 // NewUserController creates a new UserController.
-func NewUserController(store *store.UserStore) *UserController {
+func NewUserController(errCtrl *ErrorController, store *store.UserStore) *UserController {
 	ctrl := new(UserController)
+	ctrl.err = errCtrl
 	ctrl.store = store
 	ctrl.view = view.NewUserView()
 
@@ -47,7 +49,7 @@ func (ctrl *UserController) ServeCreatePage(w http.ResponseWriter, r *http.Reque
 func (ctrl *UserController) ServeProfilePage(w http.ResponseWriter, r *http.Request) {
 	user := session.User(r)
 	if user == nil {
-		httpext.InternalError(w, "failed to serve profile page: no user authenticated")
+		ctrl.err.ServeInternalServerError(w, r, "Failed to serve profile page: no user authenticated")
 		return
 	}
 
@@ -59,13 +61,13 @@ func (ctrl *UserController) ServeProfilePage(w http.ResponseWriter, r *http.Requ
 func (ctrl *UserController) ServeEditPage(w http.ResponseWriter, r *http.Request) {
 	id, err := httpext.ParseID(r)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to serve edit user page:", err.Error()))
+		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to serve edit user page:", err.Error()))
 		return
 	}
 
 	user, err := ctrl.store.FindByID(id)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to serve edit user page:", err.Error()))
+		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to serve edit user page:", err.Error()))
 		return
 	}
 
@@ -77,7 +79,7 @@ func (ctrl *UserController) ServeEditPage(w http.ResponseWriter, r *http.Request
 func (ctrl *UserController) ServeListPage(w http.ResponseWriter, r *http.Request) {
 	users, err := ctrl.store.FindRange(httpext.ParseRange(r))
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to serve list users page", err.Error()))
+		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to serve list users page:", err.Error()))
 		return
 	}
 
@@ -89,13 +91,13 @@ func (ctrl *UserController) ServeListPage(w http.ResponseWriter, r *http.Request
 func (ctrl *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 	template, err := ctrl.parseUserTemplate(r)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to create user", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Failed to create user", err.Error())
 		return
 	}
 
 	_, err = ctrl.store.Insert(template)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to create user", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Failed to create user", err.Error())
 		return
 	}
 
@@ -106,13 +108,13 @@ func (ctrl *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 func (ctrl *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	userTmpl, err := ctrl.parseProfileTemplate(r)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to update profile", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Failed to save profile", err.Error())
 		return
 	}
 
 	_, err = ctrl.store.Update(userTmpl)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to update profile", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Failed to save profile", err.Error())
 		return
 	}
 
@@ -123,13 +125,13 @@ func (ctrl *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request
 func (ctrl *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	userTmpl, err := ctrl.parseUserTemplate(r)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to update user", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Failed to save user", err.Error())
 		return
 	}
 
 	_, err = ctrl.store.Update(userTmpl)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to update user", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Failed to save user", err.Error())
 		return
 	}
 
@@ -140,19 +142,19 @@ func (ctrl *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 func (ctrl *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, err := httpext.ParseID(r)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to delete user:", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Failed to delete user", err.Error())
 		return
 	}
 
 	user := session.User(r)
 	if user != nil && id == user.ID {
-		httpext.InternalError(w, "failed to delete user: can't delete self")
+		httpext.WriteErrorNotification(w, r, "Failed to delete user", "Can't delete self")
 		return
 	}
 
 	err = ctrl.store.Delete(id)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to delete user:", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Failed to delete user", err.Error())
 		return
 	}
 

@@ -1,14 +1,15 @@
 package model
 
 import (
-	"database/sql"
 	"errors"
+
 	"fmt"
 	"time"
 
 	"bingo/internal/config"
 	"bingo/internal/util/log"
 
+	"github.com/jmoiron/sqlx"
 	// Postgresql driver
 	_ "github.com/lib/pq"
 )
@@ -22,7 +23,7 @@ var (
 )
 
 // NewDatabase returns a new SQL database connection.
-func NewDatabase() *sql.DB {
+func NewDatabase() *sqlx.DB {
 	driver, connStr, err := getDataSource()
 	if err != nil {
 		log.Fatalf("Failed to open database: %s", err)
@@ -30,7 +31,7 @@ func NewDatabase() *sql.DB {
 
 	log.Infof("Opening %s database", driver)
 	log.Debugf("Database connection string: %s", connStr)
-	db, err := sql.Open(driver, connStr)
+	db, err := sqlx.Open(driver, connStr)
 	if err != nil {
 		log.Fatalf("Failed to open database: %s", err)
 	}
@@ -45,7 +46,7 @@ func NewDatabase() *sql.DB {
 	return db
 }
 
-func pollDatabase(db *sql.DB) error {
+func pollDatabase(db *sqlx.DB) error {
 	log.Infof("Trying to connect to database for %d seconds", dbConnectionRetries)
 
 	for i := 0; i <= dbConnectionRetries; i++ {
@@ -61,7 +62,7 @@ func pollDatabase(db *sql.DB) error {
 	return errors.New("failed to connect to database")
 }
 
-func configureDatabase(db *sql.DB) {
+func configureDatabase(db *sqlx.DB) {
 	log.Debug("Configuring database")
 
 	log.Debugf("Setting max open connections to %d", dbMaxOpenConnections)
@@ -101,7 +102,7 @@ func getPostgresConnectionString() string {
 // https://stackoverflow.com/questions/12761346/pseudo-encrypt-function-in-plpgsql-that-takes-bigint/12761795#12761795
 // Creates a function that maps big integers to another seemingly random big integer.
 // Used to make sure that object ids for are seemingly random.
-func createPseudoEncrypt(db *sql.DB) {
+func createPseudoEncrypt(db *sqlx.DB) {
 	log.Debug("Creating pseudo encrypt function")
 
 	q := `

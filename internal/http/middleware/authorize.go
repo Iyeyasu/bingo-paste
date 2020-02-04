@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"bingo/internal/config"
-	"bingo/internal/http/httpext"
 	"bingo/internal/session"
 )
 
@@ -14,7 +13,7 @@ func Authorize(next http.Handler, role config.Role) http.Handler {
 		if user := session.User(r); user != nil && user.Role >= role {
 			next.ServeHTTP(w, r)
 		} else {
-			httpext.UnauthorizedError(w)
+			// httpext.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		}
 	})
 }

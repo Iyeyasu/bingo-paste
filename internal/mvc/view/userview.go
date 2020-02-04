@@ -22,7 +22,7 @@ type EditUserContext struct {
 // ListUsersContext represents a rendering context for the User List page.
 type ListUsersContext struct {
 	PageContext
-	Users []*model.User
+	Users []model.User
 }
 
 // NewUserView creates a new UserView.
@@ -40,9 +40,9 @@ func NewUserView() *UserView {
 	}
 
 	v := new(UserView)
-	v.Profile = NewPage("Profile", editPaths)
-	v.Edit = NewPage("Edit User", editPaths)
-	v.List = NewPage("List Users", listPaths)
+	v.Profile = NewPage("Profile", "/profile", editPaths)
+	v.Edit = NewPage("Edit User", "users/:id", editPaths)
+	v.List = NewPage("List Users", "users", listPaths)
 	return v
 }
 
@@ -63,7 +63,7 @@ func (v *UserView) NewEditUserContext(r *http.Request, user *model.User) EditUse
 }
 
 // NewListUsersContext creates a new ListUsersContext.
-func (v *UserView) NewListUsersContext(r *http.Request, users []*model.User) ListUsersContext {
+func (v *UserView) NewListUsersContext(r *http.Request, users []model.User) ListUsersContext {
 	return ListUsersContext{
 		Users:       users,
 		PageContext: NewPageContext(r, v.List),

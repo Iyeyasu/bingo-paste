@@ -2,7 +2,6 @@ package controller
 
 import (
 	"database/sql"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,17 +14,21 @@ import (
 	"bingo/internal/session"
 	"bingo/internal/util/auth"
 	"bingo/internal/util/log"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // AuthController handles user authentication.
 type AuthController struct {
+	err   *ErrorController
 	store *store.UserStore
 	view  *view.AuthView
 }
 
 // NewAuthController creates a new AuthController.
-func NewAuthController(store *store.UserStore) *AuthController {
+func NewAuthController(errCtrl *ErrorController, store *store.UserStore) *AuthController {
 	ctrl := new(AuthController)
+	ctrl.err = errCtrl
 	ctrl.store = store
 	ctrl.view = view.NewAuthView()
 	return ctrl
@@ -45,50 +48,51 @@ func (ctrl *AuthController) ServeRegisterPage(w http.ResponseWriter, r *http.Req
 
 // Login authenticates a user.
 func (ctrl *AuthController) Login(w http.ResponseWriter, r *http.Request) {
-	log.Debug("Logging in")
-
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to parse login info:", err))
+		httpext.WriteErrorNotification(w, r, "Login failed", err.Error())
 		return
 	}
 
 	values, err := url.ParseQuery(string(body))
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to parse login info:", err))
+		httpext.WriteErrorNotification(w, r, "Login failed", err.Error())
 		return
 	}
 
 	username := values.Get("username")
 	password := values.Get("password")
-	log.Debugf("Login username '%s", username)
-	log.Tracef("Login password '%s'", password)
-
 	user, err := ctrl.store.FindByName(username)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to login user:", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Login failed", "Invalid username or password")
 		return
 	}
 
-	err = auth.CheckPasswordHash(password, user.PasswordHash)
-	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to login user:", err.Error()))
+	err = auth.CheckPasswordHash(password, user.PasswordHash.String)
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		httpext.WriteErrorNotification(w, r, "Login failed", "Invalid username or password")
+		return
+	} else if err != nil {
+		httpext.WriteErrorNotification(w, r, "Login failed", err.Error())
 		return
 	}
 
 	err = session.Login(r, user)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to login user:", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Login failed", err.Error())
 		return
 	}
 
-	log.Debugf("User '%s' logged in", username)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // Logout logs a user out.
 func (ctrl *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
-	session.Logout(r)
+	err := session.Logout(r)
+	if err != nil {
+		httpext.WriteErrorNotification(w, r, "Failed to log out", err.Error())
+		return
+	}
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
@@ -99,13 +103,13 @@ func (ctrl *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to parse registering info:", err))
+		httpext.WriteErrorNotification(w, r, "Failed to register", err.Error())
 		return
 	}
 
 	values, err := url.ParseQuery(string(body))
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to parse registering info:", err))
+		httpext.WriteErrorNotification(w, r, "Failed to register", err.Error())
 		return
 	}
 
@@ -119,7 +123,7 @@ func (ctrl *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	log.Tracef("Registering password '%s' ('%s')", password, passwordCheck)
 
 	if password != passwordCheck {
-		httpext.InternalError(w, fmt.Sprint("failed to register user: passwords don't match"))
+		httpext.WriteErrorNotification(w, r, "Failed to register", "Passwords do not match")
 		return
 	}
 
@@ -138,13 +142,13 @@ func (ctrl *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 
 	user, err := ctrl.store.Insert(&userTmpl)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to create user", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Failed to register", err.Error())
 		return
 	}
 
 	err = session.Login(r, user)
 	if err != nil {
-		httpext.InternalError(w, fmt.Sprintln("failed to login created user:", err.Error()))
+		httpext.WriteErrorNotification(w, r, "Failed to register", err.Error())
 		return
 	}
 

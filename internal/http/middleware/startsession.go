@@ -12,7 +12,7 @@ var requestCacheKey contextKey = "cache"
 
 // StartSession handles starting a session for a user.
 func StartSession(next http.Handler) http.Handler {
-	return session.Default.Manager.LoadAndSave(insertCache(next))
+	return session.Get().LoadAndSave(insertCache(next))
 }
 
 func insertCache(next http.Handler) http.Handler {

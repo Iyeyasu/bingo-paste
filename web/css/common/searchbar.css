@@ -27,10 +27,6 @@
   padding: 0;
 }
 
-.searchbar button:-moz-focusring {
-    color: transparent;
-}
-
 .searchbar .searchbar__icon {
   fill: var(--color-text-body);
   width: 1rem;
