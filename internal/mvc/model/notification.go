@@ -26,6 +26,7 @@ type Notification struct {
 // NewErrorNotification creates a new error Notification.
 func NewErrorNotification(title string, content string) *Notification {
 	return &Notification{
+		Type:    NotificationError,
 		Title:   title,
 		Content: content,
 	}
@@ -34,6 +35,7 @@ func NewErrorNotification(title string, content string) *Notification {
 // NewSuccessNotification creates a new error Notification.
 func NewSuccessNotification(title string, content string) *Notification {
 	return &Notification{
+		Type:    NotificationSuccess,
 		Title:   title,
 		Content: content,
 	}

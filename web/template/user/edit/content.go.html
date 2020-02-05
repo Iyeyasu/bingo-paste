@@ -30,15 +30,15 @@
             <div class="card__field">
                 <div class="card__field__title">Name</div>
                 <div class="card__field__body">
-                    <div class="card__field__description">Name is used when logging in and also displayed next to non-anonymous pastes</div>
-                    <input class="card__input" type="text" name="name" {{ if .User }} value="{{ .User.Name }}" {{ end }} required>
+                    <div class="card__field__description">Name is used when logging in and displayed on non-anonymous pastes</div>
+                    <input class="card__input" type="text" name="username" {{ if .User }} value="{{ .User.Name }}" {{ end }} required>
                 </div>
             </div>
 
             <div class="card__field">
                 <div class="card__field__title">Email</div>
                 <div class="card__field__body">
-                    <div class="card__field__description">Email is used to send email notifications and password reset request</div>
+                    <div class="card__field__description">Email is used to send password reset request and confirmation mails</div>
                     <input class="card__input" type="email" pattern="[^ @]*@[^ @]*" name="email" {{ if .User  }} value="{{ .User.Email }}" {{ end }} required>
                 </div>
             </div>
@@ -55,7 +55,7 @@
             <div class="card__field">
                 <div class="card__field__title">Role</div>
                 <div class="card__field__body">
-                    <div class="card__field__description">Role determins the permissions to read and write pastes and configure the service</div>
+                    <div class="card__field__description">Role determines the permissions the user has on the site</div>
                     <div class="card__control card__dropdown">
                         <svg class="card__control__icon card__control__icon--right" viewBox="0 0 12 16" version="1.1">
                             <path fill-rule="evenodd" d="M12 14.002a.998.998 0 01-.998.998H1.001A1 1 0 010 13.999V13c0-2.633 4-4 4-4s.229-.409 0-1c-.841-.62-.944-1.59-1-4 .173-2.413 1.867-3 3-3s2.827.586 3 3c-.056 2.41-.159 3.38-1 4-.229.59 0 1 0 1s4 1.367 4 4v1.002z"/>

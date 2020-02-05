@@ -1,8 +1,6 @@
 package httpext
 
 import (
-	"bingo/internal/mvc/model"
-	"bingo/internal/session"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -44,24 +42,4 @@ func WriteTemplate(w http.ResponseWriter, tmpl *template.Template, ctx interface
 	WriteDefaultHeaders(w, "text/html")
 
 	return tmpl.Execute(w, ctx)
-}
-
-// WriteErrorNotification reloads the current page and inserts an error notification.
-func WriteErrorNotification(w http.ResponseWriter, r *http.Request, title string, content string) {
-	notification := model.NewErrorNotification(title, content)
-	session.Get().Put(r.Context(), model.NotificationKey, notification)
-	http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
-}
-
-// WriteSuccessNotification reloads the current page and inserts a success notification.
-func WriteSuccessNotification(w http.ResponseWriter, r *http.Request, title string, content string) {
-	notification := model.NewSuccessNotification(title, content)
-	session.Get().Put(r.Context(), model.NotificationKey, notification)
-	http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
-}
-
-// WriteNotification reloads the current page and inserts a notification.
-func WriteNotification(w http.ResponseWriter, r *http.Request, notification *model.Notification) {
-	session.Get().Put(r.Context(), model.NotificationKey, notification)
-	http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
 }

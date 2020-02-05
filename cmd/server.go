@@ -22,10 +22,10 @@ func main() {
 	router := httprouter.New()
 
 	errCtrl := controller.NewErrorController()
-	pasteCtrl := controller.NewPasteController(errCtrl, pasteStore)
 	imageCtrl := controller.NewImageController()
+	pasteCtrl := controller.NewPasteController(errCtrl, pasteStore)
 	userCtrl := controller.NewUserController(errCtrl, userStore)
-	authCtrl := controller.NewAuthController(errCtrl, userStore)
+	authCtrl := controller.NewAuthController(errCtrl, userCtrl)
 
 	imageRoute(router, imageCtrl)
 	pasteRoute(router, pasteCtrl)

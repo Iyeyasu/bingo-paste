@@ -3,9 +3,9 @@
   flex-direction: column;
   justify-content: flex-start;
   position: relative;
-  width: 56rem;
+  width: 60rem;
   padding: 2.4rem 3rem;
-  margin: 4rem auto 12rem auto;
+  margin: 2.5rem auto 8rem auto;
   box-shadow: 0 1px 6px -1px rgba(0, 0, 0, 0.3);
   color: var(--color-text-body);
   background-color: var(--color-bg-light);
@@ -87,7 +87,7 @@
 }
 
 .card__field__description {
-  flex-basis: 45%;
+  flex-basis: 48%;
   margin-right: 2rem;
   font-size: 0.8rem;
   color: var(--color-text-body-light)

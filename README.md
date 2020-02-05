@@ -11,10 +11,7 @@ MIT License
 ## TODO
 
 - Backend
-    - Server
-    - Postgres/MySQL/SQLite
-- Client-Side Encryption
-- Syntax Highlighting
-- Searching
-- Dark And Light Themes
-
+    - MySQL/SQLite options?
+- SMTP
+    - Send register mail/password recovery?
+- LDAP

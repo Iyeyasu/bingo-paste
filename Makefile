@@ -29,10 +29,10 @@ verify:
 format:
 	@gofmt -w -s -d .
 
-debug: vet tidy verify format
+debug: tidy verify format vet
 	@CGO_ENABLED=0 go build -v -o $(OUTPUT_FILE) $(BUILD_PATH)
 
-release: vet tidy verify format
+release: tidy verify format vet
 	@CGO_ENABLED=0 go build -v -o $(OUTPUT_FILE) -ldflags '-s -w' $(BUILD_PATH)
 
 docker:

@@ -47,13 +47,7 @@ func (ctrl *PasteController) ServeWritePage(w http.ResponseWriter, r *http.Reque
 
 // ServeViewPage serves the page for viewing individual pastes.
 func (ctrl *PasteController) ServeViewPage(w http.ResponseWriter, r *http.Request) {
-	id, err := httpext.ParseID(r)
-	if err != nil {
-		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to server view paste page: ", err))
-		return
-	}
-
-	paste, err := ctrl.store.FindByID(id)
+	paste, err := ctrl.getPaste(r)
 	if err != nil {
 		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to server view paste page: ", err))
 		return
@@ -65,13 +59,7 @@ func (ctrl *PasteController) ServeViewPage(w http.ResponseWriter, r *http.Reques
 
 // ServeRawPaste serves the raw text content of individual pastes.
 func (ctrl *PasteController) ServeRawPaste(w http.ResponseWriter, r *http.Request) {
-	id, err := httpext.ParseID(r)
-	if err != nil {
-		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to serve raw paste: ", err))
-		return
-	}
-
-	paste, err := ctrl.store.FindByID(id)
+	paste, err := ctrl.getPaste(r)
 	if err != nil {
 		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to serve raw paste: ", err))
 		return
@@ -104,19 +92,34 @@ func (ctrl *PasteController) ServeListPage(w http.ResponseWriter, r *http.Reques
 
 // CreatePaste creates a new paste.
 func (ctrl *PasteController) CreatePaste(w http.ResponseWriter, r *http.Request) {
+	paste, err := ctrl.createPaste(r)
+	if err != nil {
+		httpext.ReloadWithError(w, r, "Failed to create paste", err.Error())
+		return
+	}
+
+	msg := fmt.Sprintf("Created paste %s (%s)", paste.Title, paste.Language)
+	note := model.NewSuccessNotification("Success", msg)
+	url := fmt.Sprintf("/pastes/%d", paste.ID)
+	httpext.RedirectWithNotify(w, r, url, http.StatusSeeOther, note)
+}
+
+func (ctrl *PasteController) getPaste(r *http.Request) (*model.Paste, error) {
+	id, err := httpext.ParseID(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return ctrl.store.FindByID(id)
+}
+
+func (ctrl *PasteController) createPaste(r *http.Request) (*model.Paste, error) {
 	template, err := parseTemplate(r)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to create paste", err.Error())
-		return
+		return nil, err
 	}
 
-	paste, err := ctrl.store.Insert(template)
-	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to create paste", err.Error())
-		return
-	}
-
-	http.Redirect(w, r, fmt.Sprintf("/pastes/%d", paste.ID), 303)
+	return ctrl.store.Insert(template)
 }
 
 func parseTemplate(r *http.Request) (*model.PasteTemplate, error) {

@@ -8,8 +8,6 @@ import (
 
 	"bingo/internal/config"
 	"bingo/internal/http/httpext"
-	"bingo/internal/mvc/model"
-	"bingo/internal/mvc/model/store"
 	"bingo/internal/mvc/view"
 	"bingo/internal/session"
 	"bingo/internal/util/auth"
@@ -20,16 +18,16 @@ import (
 
 // AuthController handles user authentication.
 type AuthController struct {
-	err   *ErrorController
-	store *store.UserStore
-	view  *view.AuthView
+	err  *ErrorController
+	user *UserController
+	view *view.AuthView
 }
 
 // NewAuthController creates a new AuthController.
-func NewAuthController(errCtrl *ErrorController, store *store.UserStore) *AuthController {
+func NewAuthController(errCtrl *ErrorController, userCtrl *UserController) *AuthController {
 	ctrl := new(AuthController)
 	ctrl.err = errCtrl
-	ctrl.store = store
+	ctrl.user = userCtrl
 	ctrl.view = view.NewAuthView()
 	return ctrl
 }
@@ -50,36 +48,36 @@ func (ctrl *AuthController) ServeRegisterPage(w http.ResponseWriter, r *http.Req
 func (ctrl *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Login failed", err.Error())
+		httpext.ReloadWithError(w, r, "Login failed", err.Error())
 		return
 	}
 
 	values, err := url.ParseQuery(string(body))
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Login failed", err.Error())
+		httpext.ReloadWithError(w, r, "Login failed", err.Error())
 		return
 	}
 
 	username := values.Get("username")
 	password := values.Get("password")
-	user, err := ctrl.store.FindByName(username)
+	user, err := ctrl.user.store.FindByName(username)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Login failed", "Invalid username or password")
+		httpext.ReloadWithError(w, r, "Login failed", "Invalid username or password")
 		return
 	}
 
 	err = auth.CheckPasswordHash(password, user.PasswordHash.String)
 	if err == bcrypt.ErrMismatchedHashAndPassword {
-		httpext.WriteErrorNotification(w, r, "Login failed", "Invalid username or password")
+		httpext.ReloadWithError(w, r, "Login failed", "Invalid username or password")
 		return
 	} else if err != nil {
-		httpext.WriteErrorNotification(w, r, "Login failed", err.Error())
+		httpext.ReloadWithError(w, r, "Login failed", err.Error())
 		return
 	}
 
 	err = session.Login(r, user)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Login failed", err.Error())
+		httpext.ReloadWithError(w, r, "Login failed", err.Error())
 		return
 	}
 
@@ -90,7 +88,7 @@ func (ctrl *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 func (ctrl *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 	err := session.Logout(r)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to log out", err.Error())
+		httpext.ReloadWithError(w, r, "Failed to log out", err.Error())
 		return
 	}
 
@@ -101,57 +99,33 @@ func (ctrl *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 func (ctrl *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Registering a new user")
 
-	body, err := ioutil.ReadAll(r.Body)
+	userTmpl, err := ctrl.user.parseUserTemplate(r)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to register", err.Error())
+		httpext.ReloadWithError(w, r, "Failed to register", err.Error())
 		return
 	}
 
-	values, err := url.ParseQuery(string(body))
-	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to register", err.Error())
-		return
-	}
-
-	username := values.Get("username")
-	email := values.Get("email")
-	password := values.Get("password")
-	passwordCheck := values.Get("password_confirm")
-
-	log.Debugf("Registering username '%s", username)
-	log.Debugf("Registering email '%s", email)
-	log.Tracef("Registering password '%s' ('%s')", password, passwordCheck)
-
-	if password != passwordCheck {
-		httpext.WriteErrorNotification(w, r, "Failed to register", "Passwords do not match")
-		return
-	}
-
-	theme := config.Get().Theme.Default
-	authRole := config.Get().Authentication.DefaultRole
+	// Users aren't allowed to create their own auth settings
 	authMode := config.Get().Authentication.DefaultMode
-	userTmpl := model.UserTemplate{
-		Password:       sql.NullString{String: password, Valid: true},
-		Name:           sql.NullString{String: username, Valid: true},
-		Email:          sql.NullString{String: email, Valid: true},
-		AuthMode:       sql.NullInt32{Int32: int32(authMode), Valid: true},
-		AuthExternalID: sql.NullString{Valid: false},
-		Role:           sql.NullInt32{Int32: int32(authRole), Valid: true},
-		Theme:          sql.NullInt32{Int32: int32(theme), Valid: true},
-	}
+	authRole := config.Get().Authentication.DefaultRole
+	theme := config.Get().Theme.Default
+	userTmpl.AuthExternalID = sql.NullString{Valid: false}
+	userTmpl.AuthMode = sql.NullInt32{Int32: int32(authMode), Valid: true}
+	userTmpl.Role = sql.NullInt32{Int32: int32(authRole), Valid: true}
+	userTmpl.Theme = sql.NullInt32{Int32: int32(theme), Valid: true}
 
-	user, err := ctrl.store.Insert(&userTmpl)
+	user, err := ctrl.user.createUser(userTmpl)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to register", err.Error())
+		httpext.ReloadWithError(w, r, "Failed to register", err.Error())
 		return
 	}
 
 	err = session.Login(r, user)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to register", err.Error())
+		httpext.ReloadWithError(w, r, "Failed to login", err.Error())
 		return
 	}
 
-	log.Debugf("User '%s' created and logged in", username)
+	log.Debugf("User '%s' created and logged in", user.Name)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

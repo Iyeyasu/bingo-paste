@@ -4,9 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"bingo/internal/config"
@@ -59,13 +57,7 @@ func (ctrl *UserController) ServeProfilePage(w http.ResponseWriter, r *http.Requ
 
 // ServeEditPage serves the view for editing and creating a user.
 func (ctrl *UserController) ServeEditPage(w http.ResponseWriter, r *http.Request) {
-	id, err := httpext.ParseID(r)
-	if err != nil {
-		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to serve edit user page:", err.Error()))
-		return
-	}
-
-	user, err := ctrl.store.FindByID(id)
+	user, err := ctrl.getUser(r)
 	if err != nil {
 		ctrl.err.ServeInternalServerError(w, r, fmt.Sprintln("Failed to serve edit user page:", err.Error()))
 		return
@@ -89,76 +81,69 @@ func (ctrl *UserController) ServeListPage(w http.ResponseWriter, r *http.Request
 
 // CreateUser creates a new user.
 func (ctrl *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
-	template, err := ctrl.parseUserTemplate(r)
+	userTmpl, err := ctrl.parseUserTemplate(r)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to create user", err.Error())
+		httpext.ReloadWithError(w, r, "Failed to create user", err.Error())
 		return
 	}
 
-	_, err = ctrl.store.Insert(template)
+	user, err := ctrl.createUser(userTmpl)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to create user", err.Error())
+		httpext.ReloadWithError(w, r, "Failed to create user", err.Error())
 		return
 	}
 
-	http.Redirect(w, r, "/users", http.StatusSeeOther)
+	msg := fmt.Sprintf("User <b>%s</b> created successfully", user.Name)
+	note := model.NewSuccessNotification("Created", msg)
+	httpext.RedirectWithNotify(w, r, "/users", http.StatusSeeOther, note)
 }
 
 // UpdateProfile updates the profile of the logged in user.
 func (ctrl *UserController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	userTmpl, err := ctrl.parseProfileTemplate(r)
+	_, err := ctrl.updateProfile(r)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to save profile", err.Error())
+		httpext.ReloadWithError(w, r, "Failed to save profile", err.Error())
 		return
 	}
 
-	_, err = ctrl.store.Update(userTmpl)
-	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to save profile", err.Error())
-		return
-	}
-
-	http.Redirect(w, r, "/profile", http.StatusSeeOther)
+	msg := "Profile saved successfully"
+	note := model.NewSuccessNotification("Saved", msg)
+	httpext.RedirectWithNotify(w, r, "/profile", http.StatusSeeOther, note)
 }
 
 // UpdateUser updates an existing user.
 func (ctrl *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	userTmpl, err := ctrl.parseUserTemplate(r)
+	user, err := ctrl.updateUser(r)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to save user", err.Error())
+		httpext.ReloadWithError(w, r, "Failed to save user", err.Error())
 		return
 	}
 
-	_, err = ctrl.store.Update(userTmpl)
-	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to save user", err.Error())
-		return
-	}
-
-	http.Redirect(w, r, "/users", http.StatusSeeOther)
+	msg := fmt.Sprintf("User <b>%s</b> saved successfully", user.Name)
+	note := model.NewSuccessNotification("Saved", msg)
+	httpext.RedirectWithNotify(w, r, "/users", http.StatusSeeOther, note)
 }
 
 // DeleteUser deletes an existing user.
 func (ctrl *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	user, err := ctrl.deleteUser(r)
+	if err != nil {
+		httpext.ReloadWithError(w, r, "Failed to delete user", err.Error())
+		return
+	}
+
+	msg := fmt.Sprintf("User <b>%s</b> deleted successfully", user.Name)
+	note := model.NewSuccessNotification("Deleted", msg)
+	httpext.RedirectWithNotify(w, r, "/users", http.StatusSeeOther, note)
+}
+
+func (ctrl *UserController) getUser(r *http.Request) (*model.User, error) {
 	id, err := httpext.ParseID(r)
 	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to delete user", err.Error())
-		return
+		return nil, err
 	}
 
-	user := session.User(r)
-	if user != nil && id == user.ID {
-		httpext.WriteErrorNotification(w, r, "Failed to delete user", "Can't delete self")
-		return
-	}
-
-	err = ctrl.store.Delete(id)
-	if err != nil {
-		httpext.WriteErrorNotification(w, r, "Failed to delete user", err.Error())
-		return
-	}
-
-	http.Redirect(w, r, "/users", http.StatusSeeOther)
+	return ctrl.store.FindByID(id)
 }
 
 func (ctrl *UserController) createInitialUser() error {
@@ -178,34 +163,104 @@ func (ctrl *UserController) createInitialUser() error {
 	return err
 }
 
+func (ctrl *UserController) createUser(userTmpl *model.UserTemplate) (*model.User, error) {
+	_, err := ctrl.store.FindByName(userTmpl.Name.String)
+	if err != sql.ErrNoRows {
+		return nil, errors.New("username already taken")
+	}
+
+	user, err := ctrl.store.Insert(userTmpl)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+// DeleteUser deletes an existing user.
+func (ctrl *UserController) deleteUser(r *http.Request) (*model.User, error) {
+	id, err := httpext.ParseID(r)
+	if err != nil {
+		return nil, err
+	}
+
+	currentUser := session.User(r)
+	if currentUser != nil && id == currentUser.ID {
+		return nil, errors.New("can't delete self")
+	}
+
+	user, err := ctrl.store.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ctrl.store.Delete(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (ctrl *UserController) updateUser(r *http.Request) (*model.User, error) {
+	userTmpl, err := ctrl.parseUserTemplate(r)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := ctrl.store.Update(userTmpl)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (ctrl *UserController) updateProfile(r *http.Request) (*model.User, error) {
+	userTmpl, err := ctrl.parseProfileTemplate(r)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := ctrl.store.Update(userTmpl)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func (ctrl *UserController) parseProfileTemplate(r *http.Request) (*model.UserTemplate, error) {
+	userTmpl, err := ctrl.parseUserTemplate(r)
+	if err != nil {
+		return nil, err
+	}
+
 	user := session.User(r)
 	if user == nil {
-		return nil, errors.New("user is nil")
+		return nil, errors.New("no user logged in")
 	}
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
+	// Users aren't allowed to change their own auth settings
+	userTmpl.ID = sql.NullInt64{Int64: user.ID, Valid: true}
+	userTmpl.AuthMode = sql.NullInt32{Valid: false}
+	userTmpl.AuthExternalID = sql.NullString{Valid: false}
+	userTmpl.Role = sql.NullInt32{Valid: false}
 
-	values, err := url.ParseQuery(string(body))
-	if err != nil {
-		return nil, err
-	}
-
-	userTmpl := model.UserTemplate{
-		ID:       sql.NullInt64{Int64: user.ID, Valid: true},
-		Password: ctrl.parseString(values.Get("password")),
-		Name:     ctrl.parseString(values.Get("name")),
-		Email:    ctrl.parseString(values.Get("email")),
-		Theme:    ctrl.parseInt32(values.Get("theme")),
-	}
-
-	return &userTmpl, nil
+	return userTmpl, nil
 }
 
 func (ctrl *UserController) parseUserTemplate(r *http.Request) (*model.UserTemplate, error) {
+	err := r.ParseForm()
+	if err != nil {
+		return nil, err
+	}
+
+	password := r.FormValue("password")
+	if passwordCheck, ok := r.Form["password_confirm"]; ok && password != passwordCheck[0] {
+		return nil, errors.New("passwords do not match")
+	}
+
 	id, err := httpext.ParseID(r)
 	userID := sql.NullInt64{Int64: id, Valid: true}
 	if err != nil {
@@ -213,25 +268,15 @@ func (ctrl *UserController) parseUserTemplate(r *http.Request) (*model.UserTempl
 		userID.Valid = false
 	}
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	values, err := url.ParseQuery(string(body))
-	if err != nil {
-		return nil, err
-	}
-
 	userTmpl := model.UserTemplate{
 		ID:             userID,
-		Password:       ctrl.parseString(values.Get("password")),
-		Name:           ctrl.parseString(values.Get("name")),
-		Email:          ctrl.parseString(values.Get("email")),
-		AuthExternalID: ctrl.parseString(values.Get("auth_external_id")),
-		AuthMode:       ctrl.parseInt32(values.Get("auth_mode")),
-		Role:           ctrl.parseInt32(values.Get("role")),
-		Theme:          ctrl.parseInt32(values.Get("theme")),
+		Password:       ctrl.parseString(r.FormValue("password")),
+		Name:           ctrl.parseString(r.FormValue("username")),
+		Email:          ctrl.parseString(r.FormValue("email")),
+		AuthExternalID: ctrl.parseString(r.FormValue("auth_external_id")),
+		AuthMode:       ctrl.parseInt32(r.FormValue("auth_mode")),
+		Role:           ctrl.parseInt32(r.FormValue("role")),
+		Theme:          ctrl.parseInt32(r.FormValue("theme")),
 	}
 
 	return &userTmpl, nil
