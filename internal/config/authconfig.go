@@ -32,7 +32,6 @@ type AuthConfig struct {
 	RawDefaultMode string   `yaml:"default_mode"`
 	DefaultRole    Role     `yaml:"-"`
 	RawDefaultRole string   `yaml:"default_role"`
-	Registration   bool     `yaml:"registration"`
 
 	Session struct {
 		Name         string `yaml:"name"`
@@ -45,6 +44,30 @@ type AuthConfig struct {
 			Database int    `yaml:"database"`
 		} `yaml:"redis"`
 	} `yaml:"session"`
+
+	Standard struct {
+		Enabled           bool `yaml:"enabled"`
+		AllowRegistration bool `yaml:"allow_registration"`
+	} `yaml:"standard"`
+
+	LDAP struct {
+		Enabled bool   `yaml:"enabled"`
+		Host    string `yaml:"host"`
+		Port    int    `yaml:"port"`
+		UseTLS  bool   `yaml:"tls"`
+		Base    string `yaml:"base"`
+		Bind    struct {
+			DN       string `yaml:"dn"`
+			Password string `yaml:"password"`
+		} `yaml:"bind"`
+		Attributes struct {
+			UID   string `yaml:"uid"`
+			Name  string `yaml:"name"`
+			Email string `yaml:"email"`
+		} `yaml:"attributes"`
+		UserFilter  string `yaml:"user_filter"`
+		AdminFilter string `yaml:"admin_filter"`
+	} `yaml:"ldap"`
 }
 
 // DefaultAuthConfig creates a new AuthConfig with default values.
@@ -55,7 +78,6 @@ func DefaultAuthConfig() AuthConfig {
 		RawDefaultMode: "standard",
 		DefaultRole:    RoleEditor,
 		RawDefaultRole: "editor",
-		Registration:   false,
 	}
 
 	config.Session.Name = "session_bingo"
@@ -66,6 +88,12 @@ func DefaultAuthConfig() AuthConfig {
 	config.Session.Redis.Port = 6379
 	config.Session.Redis.Password = ""
 	config.Session.Redis.Database = 0
+
+	config.Standard.Enabled = true
+	config.Standard.AllowRegistration = false
+
+	config.LDAP.Enabled = false
+
 	return config
 }
 

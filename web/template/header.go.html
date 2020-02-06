@@ -84,7 +84,7 @@
             </svg>
             <div>Login</div>
         </a>
-        {{ if .Config.Authentication.Registration }}
+        {{ if and .Config.Authentication.Standard.Enabled .Config.Authentication.Standard.AllowRegistration }}
         <a class='header__link {{ if eq .Page.Name "Register" }} header__link--selected {{ end }}' href="/register">
             <div>Register</div>
         </a>

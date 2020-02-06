@@ -2,12 +2,12 @@ package controller
 
 import (
 	"database/sql"
-	"io/ioutil"
+	"errors"
 	"net/http"
-	"net/url"
 
 	"bingo/internal/config"
 	"bingo/internal/http/httpext"
+	"bingo/internal/mvc/model"
 	"bingo/internal/mvc/view"
 	"bingo/internal/session"
 	"bingo/internal/util/auth"
@@ -46,36 +46,7 @@ func (ctrl *AuthController) ServeRegisterPage(w http.ResponseWriter, r *http.Req
 
 // Login authenticates a user.
 func (ctrl *AuthController) Login(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		httpext.ReloadWithError(w, r, "Login failed", err.Error())
-		return
-	}
-
-	values, err := url.ParseQuery(string(body))
-	if err != nil {
-		httpext.ReloadWithError(w, r, "Login failed", err.Error())
-		return
-	}
-
-	username := values.Get("username")
-	password := values.Get("password")
-	user, err := ctrl.user.store.FindByName(username)
-	if err != nil {
-		httpext.ReloadWithError(w, r, "Login failed", "Invalid username or password")
-		return
-	}
-
-	err = auth.CheckPasswordHash(password, user.PasswordHash.String)
-	if err == bcrypt.ErrMismatchedHashAndPassword {
-		httpext.ReloadWithError(w, r, "Login failed", "Invalid username or password")
-		return
-	} else if err != nil {
-		httpext.ReloadWithError(w, r, "Login failed", err.Error())
-		return
-	}
-
-	err = session.Login(r, user)
+	_, err := ctrl.login(r)
 	if err != nil {
 		httpext.ReloadWithError(w, r, "Login failed", err.Error())
 		return
@@ -109,7 +80,6 @@ func (ctrl *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 	authMode := config.Get().Authentication.DefaultMode
 	authRole := config.Get().Authentication.DefaultRole
 	theme := config.Get().Theme.Default
-	userTmpl.AuthExternalID = sql.NullString{Valid: false}
 	userTmpl.AuthMode = sql.NullInt32{Int32: int32(authMode), Valid: true}
 	userTmpl.Role = sql.NullInt32{Int32: int32(authRole), Valid: true}
 	userTmpl.Theme = sql.NullInt32{Int32: int32(theme), Valid: true}
@@ -128,4 +98,32 @@ func (ctrl *AuthController) Register(w http.ResponseWriter, r *http.Request) {
 
 	log.Debugf("User '%s' created and logged in", user.Name)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (ctrl *AuthController) login(r *http.Request) (*model.User, error) {
+	err := r.ParseForm()
+	if err != nil {
+		return nil, err
+	}
+
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+	user, err := ctrl.user.store.FindByUID(username)
+	if err != nil {
+		return nil, errors.New("invalid username or password")
+	}
+
+	err = auth.CheckPasswordHash(password, user.PasswordHash.String)
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		return nil, errors.New("invalid username or password")
+	} else if err != nil {
+		return nil, err
+	}
+
+	err = session.Login(r, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

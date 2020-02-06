@@ -2,9 +2,7 @@ package controller
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -123,32 +121,27 @@ func (ctrl *PasteController) createPaste(r *http.Request) (*model.Paste, error) 
 }
 
 func parseTemplate(r *http.Request) (*model.PasteTemplate, error) {
-	body, err := ioutil.ReadAll(r.Body)
+	err := r.ParseForm()
 	if err != nil {
 		return nil, err
 	}
 
-	values, err := url.ParseQuery(string(body))
-	if err != nil {
-		return nil, err
-	}
-
-	duration, err := strconv.ParseInt(values.Get("expiry"), 10, 64)
+	duration, err := strconv.ParseInt(r.FormValue("expiry"), 10, 64)
 	if err != nil {
 		duration = 0
 	}
 
-	visibility, err := strconv.Atoi(values.Get("visibility"))
+	visibility, err := strconv.Atoi(r.FormValue("visibility"))
 	if err != nil {
 		visibility = int(config.VisibilityUnlisted)
 	}
 
 	pasteTmpl := model.PasteTemplate{
-		Title:      values.Get("title"),
-		RawContent: values.Get("content"),
+		Title:      r.FormValue("title"),
+		RawContent: r.FormValue("content"),
 		Visibility: config.Visibility(visibility),
 		Duration:   time.Duration(duration),
-		Language:   values.Get("language"),
+		Language:   r.FormValue("language"),
 	}
 	return &pasteTmpl, nil
 }

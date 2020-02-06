@@ -19,13 +19,11 @@
 }
 
 .notification--error {
-  background-color:#ce3232;
-  -webkit-animation: notification-in 5s forwards;
-  animation: notification-in 5s forwards;
+  background-color: var(--color-error);
 }
 
 .notification--success {
-  background-color: #1ea64d;
+  background-color: var(--color-success);
   -webkit-animation: notification-in-out 5s forwards;
   animation: notification-in-out 5s forwards;
 }
@@ -54,28 +52,14 @@
     text-transform: uppercase;
 }
 
-@keyframes notification-in {
-    0%   {opacity: 0;}
-    4%   {opacity: 1;}
-    100%  {opacity: 1;}
-}
-
-@-webkit-keyframes notification-in {
-    0%   {opacity: 0;}
-    4%   {opacity: 1;}
-    100%  {opacity: 1;}
-}
-
 @keyframes notification-in-out {
-    0%   {opacity: 0;}
-    4%   {opacity: 1;}
-    80%  {opacity: 1;}
+    0%   {opacity: 1;}
+    90%  {opacity: 1;}
     100% {opacity: 0;}
 }
 
 @-webkit-keyframes notification-in-out {
-    0%   {opacity: 0;}
-    4%   {opacity: 1;}
-    80%  {opacity: 1;}
+    0%   {opacity: 1;}
+    90%  {opacity: 1;}
     100% {opacity: 0;}
 }

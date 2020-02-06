@@ -17,7 +17,6 @@ auth:
   enabled: true
   default_mode: standard
   default_role: editor
-  registration: true
   session:
     name: session_bingo
     secure_cookie: false
@@ -27,6 +26,27 @@ auth:
       port: 6379
       password: ""
       database: 0
+  standard:
+    enabled: true
+    allow_registration: true
+  ldap:
+    enabled: true
+    host: "localhost"
+    port: 389
+    tls: true
+    base: "ou=users,dc=example,dc=com"
+    bind:
+      dn: ""
+      password: ""
+    attributes:
+      uid: "uid"
+      name: "givenName"
+      email: "mail"
+    filter:
+      user: "(objectClass=posixAccount)"
+      admin: "(memberOf=cn=admin-group,ou=example,dc=example,dc=org)"
+      editor: "(memberOf=cn=admin-group,ou=example,dc=example,dc=org)"
+      viewer: "(memberOf=cn=admin-group,ou=example,dc=example,dc=org)"
 
 expiry:
   enabled: true

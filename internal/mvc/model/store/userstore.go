@@ -21,13 +21,12 @@ func NewUserStore(db *sqlx.DB) *UserStore {
 	log.Debug("Initializing user store")
 	store := new(UserStore)
 	store.Database = db
+	store.createTable()
 	return store
 }
 
 // Count returns the number of users.
 func (store *UserStore) Count() int64 {
-	log.Debugf("Counting number of users")
-
 	var count int64
 	store.Database.Get(&count, "SELECT COUNT(*) FROM users")
 	return count
@@ -38,7 +37,7 @@ func (store *UserStore) FindByID(id int64) (*model.User, error) {
 	log.Debugf("Retrieving user %d from database", id)
 
 	query := `
-		SELECT id, time_created, name, email, password_hash, auth_mode, auth_external_id, role, theme
+		SELECT id, time_created, uid, name, email, password_hash, auth_mode, role, theme
 		FROM users
 		WHERE id = $1
 		`
@@ -48,18 +47,18 @@ func (store *UserStore) FindByID(id int64) (*model.User, error) {
 	return user, err
 }
 
-// FindByName returns the user with the given name from the database.
-func (store *UserStore) FindByName(name string) (*model.User, error) {
-	log.Debugf("Retrieving user with name '%s' from database", name)
+// FindByUID returns the user with the given uid from the database.
+func (store *UserStore) FindByUID(uid string) (*model.User, error) {
+	log.Debugf("Retrieving user with name '%s' from database", uid)
 
 	query := `
-		SELECT id, time_created, name, email, password_hash, auth_mode, auth_external_id, role, theme
+		SELECT id, time_created, uid, name, email, password_hash, auth_mode, role, theme
 		FROM users
-		WHERE lower(name) = lower($1)
+		WHERE lower(uid) = lower($1)
 		`
 
 	user := new(model.User)
-	err := store.Database.Get(user, query, name)
+	err := store.Database.Get(user, query, uid)
 	return user, err
 }
 
@@ -68,7 +67,7 @@ func (store *UserStore) FindByEmail(email string) (*model.User, error) {
 	log.Debugf("Retrieving user with mail '%s' from database", email)
 
 	query := `
-		SELECT id, time_created, name, email, password_hash, auth_mode, auth_external_id, role, theme
+		SELECT id, time_created, uid, name, email, password_hash, auth_mode, role, theme
 		FROM users
 		WHERE email ILIKE $1
 		`
@@ -83,7 +82,7 @@ func (store *UserStore) FindRange(limit int64, offset int64) ([]model.User, erro
 	log.Debugf("Retrieving %d public users starting from user number %d from database", limit, offset)
 
 	query := `
-		SELECT id, time_created, name, email, password_hash, auth_mode, auth_external_id, role, theme
+		SELECT id, time_created, uid, name, email, password_hash, auth_mode, role, theme
 		FROM users
 		ORDER BY role DESC, name ASC, id ASC
 		LIMIT $1 OFFSET $2
@@ -110,11 +109,11 @@ func (store *UserStore) Insert(userTmpl *model.UserTemplate) (*model.User, error
 	query := `
 		INSERT INTO users (
 				time_created,
-				password_hash,
+				uid,
 				name,
 				email,
+				password_hash,
 				auth_mode,
-				auth_external_id,
 				role,
 				theme)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -130,11 +129,11 @@ func (store *UserStore) Insert(userTmpl *model.UserTemplate) (*model.User, error
 	err = store.Database.QueryRowx(
 		query,
 		time.Now().UTC(),
-		passwordHash,
+		userTmpl.UID,
 		userTmpl.Name,
 		userTmpl.Email,
+		passwordHash,
 		userTmpl.AuthMode,
-		userTmpl.AuthExternalID,
 		userTmpl.Role,
 		userTmpl.Theme,
 	).StructScan(user)
@@ -150,11 +149,11 @@ func (store *UserStore) Update(userTmpl *model.UserTemplate) (*model.User, error
 	query := `
 		UPDATE users
 		SET
-			password_hash 		= COALESCE($2, password_hash),
+			uid 				= COALESCE($2, uid),
 			name 				= COALESCE($3, name),
 			email 				= COALESCE($4, email),
-			auth_mode 			= COALESCE($5, auth_mode),
-			auth_external_id 	= COALESCE($6, auth_external_id),
+			password_hash 		= COALESCE($5, password_hash),
+			auth_mode 			= COALESCE($6, auth_mode),
 			role 				= COALESCE($7, role),
 			theme 				= COALESCE($8, theme)
 		WHERE id = $1
@@ -176,11 +175,11 @@ func (store *UserStore) Update(userTmpl *model.UserTemplate) (*model.User, error
 	err := store.Database.QueryRowx(
 		query,
 		userTmpl.ID,
-		passwordHash,
+		userTmpl.UID,
 		userTmpl.Name,
 		userTmpl.Email,
+		passwordHash,
 		userTmpl.AuthMode,
-		userTmpl.AuthExternalID,
 		userTmpl.Role,
 		userTmpl.Theme,
 	).StructScan(user)
@@ -193,19 +192,19 @@ func (store *UserStore) createTable() {
 		CREATE SEQUENCE IF NOT EXISTS users_id_seq AS bigint;
 
 		CREATE TABLE IF NOT EXISTS users (
-			id 					bigint PRIMARY KEY DEFAULT pseudo_encrypt(nextval('users_id_seq')),
-			time_created 	    timestamptz NOT NULL,
-			password_hash 		char(60),
-			name 				varchar(32) NOT NULL,
-			email 				varchar(254) NOT NULL,
-			auth_mode 			int NOT NULL,
-			auth_external_id 	varchar(32),
-			role 				int NOT NULL,
-			theme 				int NOT NULL
+			id				bigint PRIMARY KEY DEFAULT pseudo_encrypt(nextval('users_id_seq')),
+			time_created	timestamptz NOT NULL,
+			uid 			text NOT NULL,
+			name 			text NOT NULL,
+			email 			varchar(254),
+			password_hash	char(60),
+			auth_mode		int NOT NULL,
+			role 			int NOT NULL,
+			theme 			int NOT NULL
 		);
 
 		ALTER SEQUENCE users_id_seq OWNED BY users.id;
-		CREATE UNIQUE INDEX IF NOT EXISTS name_lower_idx ON users (lower(name));
+		CREATE UNIQUE INDEX IF NOT EXISTS users_uid_lower_idx ON users(lower(uid));
 	`
 
 	_, err := store.Database.Exec(query)

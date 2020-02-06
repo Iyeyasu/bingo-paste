@@ -58,7 +58,7 @@ func authRoute(router *httprouter.Router, authCtrl *controller.AuthController) {
 	router.Handler(http.MethodPost, "/login", guestMiddleware(authCtrl.Login))
 	router.Handler(http.MethodPost, "/logout", guestMiddleware(authCtrl.Logout))
 
-	if config.Get().Authentication.Registration {
+	if config.Get().Authentication.Standard.AllowRegistration {
 		router.Handler(http.MethodPost, "/register", guestMiddleware(authCtrl.Register))
 	}
 }

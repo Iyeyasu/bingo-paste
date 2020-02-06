@@ -10,8 +10,13 @@ MIT License
 
 ## TODO
 
-- Backend
-    - MySQL/SQLite options?
+- List view
+- Public pastes
+- LDAP
+- Minimize templates
+
+LOW PRIO:
 - SMTP
     - Send register mail/password recovery?
-- LDAP
+- Backend
+    - MySQL/SQLite options?

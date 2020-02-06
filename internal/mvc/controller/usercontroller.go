@@ -150,13 +150,13 @@ func (ctrl *UserController) createInitialUser() error {
 	log.Debug("Creating initial admin user")
 
 	userTmpl := model.UserTemplate{
-		Password:       sql.NullString{String: "admin", Valid: true},
-		Name:           sql.NullString{String: "admin", Valid: true},
-		Email:          sql.NullString{String: "admin@localhost", Valid: true},
-		AuthExternalID: sql.NullString{String: "", Valid: false},
-		AuthMode:       sql.NullInt32{Int32: int32(config.AuthStandard), Valid: true},
-		Role:           sql.NullInt32{Int32: int32(config.RoleAdmin), Valid: true},
-		Theme:          sql.NullInt32{Int32: int32(config.ThemeLight), Valid: true},
+		UID:      sql.NullString{String: "admin", Valid: true},
+		Name:     sql.NullString{String: "admin", Valid: true},
+		Email:    sql.NullString{Valid: false},
+		Password: sql.NullString{String: "admin", Valid: true},
+		AuthMode: sql.NullInt32{Int32: int32(config.AuthStandard), Valid: true},
+		Role:     sql.NullInt32{Int32: int32(config.RoleAdmin), Valid: true},
+		Theme:    sql.NullInt32{Int32: int32(config.ThemeLight), Valid: true},
 	}
 
 	_, err := ctrl.store.Insert(&userTmpl)
@@ -164,7 +164,7 @@ func (ctrl *UserController) createInitialUser() error {
 }
 
 func (ctrl *UserController) createUser(userTmpl *model.UserTemplate) (*model.User, error) {
-	_, err := ctrl.store.FindByName(userTmpl.Name.String)
+	_, err := ctrl.store.FindByUID(userTmpl.UID.String)
 	if err != sql.ErrNoRows {
 		return nil, errors.New("username already taken")
 	}
@@ -244,7 +244,6 @@ func (ctrl *UserController) parseProfileTemplate(r *http.Request) (*model.UserTe
 	// Users aren't allowed to change their own auth settings
 	userTmpl.ID = sql.NullInt64{Int64: user.ID, Valid: true}
 	userTmpl.AuthMode = sql.NullInt32{Valid: false}
-	userTmpl.AuthExternalID = sql.NullString{Valid: false}
 	userTmpl.Role = sql.NullInt32{Valid: false}
 
 	return userTmpl, nil
@@ -269,14 +268,14 @@ func (ctrl *UserController) parseUserTemplate(r *http.Request) (*model.UserTempl
 	}
 
 	userTmpl := model.UserTemplate{
-		ID:             userID,
-		Password:       ctrl.parseString(r.FormValue("password")),
-		Name:           ctrl.parseString(r.FormValue("username")),
-		Email:          ctrl.parseString(r.FormValue("email")),
-		AuthExternalID: ctrl.parseString(r.FormValue("auth_external_id")),
-		AuthMode:       ctrl.parseInt32(r.FormValue("auth_mode")),
-		Role:           ctrl.parseInt32(r.FormValue("role")),
-		Theme:          ctrl.parseInt32(r.FormValue("theme")),
+		ID:       userID,
+		UID:      ctrl.parseString(r.FormValue("username")),
+		Name:     ctrl.parseString(r.FormValue("username")),
+		Email:    ctrl.parseString(r.FormValue("email")),
+		Password: ctrl.parseString(r.FormValue("password")),
+		AuthMode: ctrl.parseInt32(r.FormValue("auth_mode")),
+		Role:     ctrl.parseInt32(r.FormValue("role")),
+		Theme:    ctrl.parseInt32(r.FormValue("theme")),
 	}
 
 	return &userTmpl, nil

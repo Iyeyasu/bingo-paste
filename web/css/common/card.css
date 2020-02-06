@@ -120,8 +120,8 @@
   background-color: var(--color-bg-medium);
 }
 
-.card__control:-moz-focusring,
-.card__control > select:-moz-focusring {
+.card__dropdown:-moz-focusring,
+.card__dropdown > select:-moz-focusring {
   outline: none;
   color: transparent;
   text-shadow: 0 0 0 var(--color-text-body-light);
@@ -145,6 +145,24 @@
   background-color: var(--color-bg-dark);
   box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.1);
   border-color: #b1b1b1;
+}
+
+.card__button--danger,
+.card__button--danger:active {
+  color: var(--color-text-header);
+  background-color: var(--color-error);
+  border: none
+}
+
+.card__button--danger:active {
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.4);
+}
+
+.card__button--danger:active,
+.card__button--danger:focus,
+.card__button--danger:hover {
+  outline: none;
+  background-color: var(--color-error-light);
 }
 
 .card__dropdown {

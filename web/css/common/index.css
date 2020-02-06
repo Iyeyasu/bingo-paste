@@ -11,6 +11,11 @@
   --color-text-body-disabled: #9da1aa;
   --color-text-header:  #e8ecee;
   --color-text-header-disabled: #9da1aa;
+
+  --color-success: #1ea64d;
+  --color-success-dark: #1c8842;
+  --color-error: #c63636;
+  --color-error-light: #d73a3a;
 }
 
 [data-theme="Dark"] {

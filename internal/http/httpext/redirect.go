@@ -3,6 +3,7 @@ package httpext
 import (
 	"bingo/internal/mvc/model"
 	"bingo/internal/session"
+	"bingo/internal/util/log"
 	"net/http"
 )
 
@@ -14,6 +15,8 @@ func RedirectWithNotify(w http.ResponseWriter, r *http.Request, url string, code
 
 // ReloadWithError reloads the current page and inserts an error notification.
 func ReloadWithError(w http.ResponseWriter, r *http.Request, title string, content string) {
+	log.Debugln(title, content)
+
 	notification := model.NewErrorNotification(title, content)
 	session.Get().Put(r.Context(), model.NotificationKey, notification)
 	http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)
@@ -21,6 +24,8 @@ func ReloadWithError(w http.ResponseWriter, r *http.Request, title string, conte
 
 // ReloadWithSuccess reloads the current page and inserts a success notification.
 func ReloadWithSuccess(w http.ResponseWriter, r *http.Request, title string, content string) {
+	log.Debugln(title, content)
+
 	notification := model.NewSuccessNotification(title, content)
 	session.Get().Put(r.Context(), model.NotificationKey, notification)
 	http.Redirect(w, r, r.RequestURI, http.StatusSeeOther)

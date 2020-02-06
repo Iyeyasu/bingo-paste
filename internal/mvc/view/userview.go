@@ -22,7 +22,8 @@ type EditUserContext struct {
 // ListUsersContext represents a rendering context for the User List page.
 type ListUsersContext struct {
 	PageContext
-	Users []model.User
+	TotalCount int
+	Users      []model.User
 }
 
 // NewUserView creates a new UserView.

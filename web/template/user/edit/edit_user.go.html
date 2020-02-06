@@ -39,7 +39,7 @@
                 <div class="card__field__title">Email</div>
                 <div class="card__field__body">
                     <div class="card__field__description">Email is used to send password reset request and confirmation mails</div>
-                    <input class="card__input" type="email" pattern="[^ @]*@[^ @]*" name="email" {{ if .User  }} value="{{ .User.Email }}" {{ end }} required>
+                    <input class="card__input" type="email" pattern="[^ @]*@[^ @]*" name="email" {{ if .User  }} value="{{ .User.Email.String }}" {{ end }}>
                 </div>
             </div>
 
@@ -122,14 +122,13 @@
 
         <div class="card__footer">
         {{ if .User }}
+            {{ if ne .User.ID .CurrentUser.ID }}
+            <button type="submit" class="card__control card__button card__button--danger" form="delete-user-form">Delete User</button>
+            {{ end }}
             {{ if eq .Page.Name "Profile" }}
             <a class="card__control card__button" href="/">Cancel</a>
             {{ else }}
             <a class="card__control card__button" href="/users">Cancel</a>
-            {{ end }}
-
-            {{ if ne .User.ID .CurrentUser.ID }}
-            <button type="submit" class="card__control card__button card__button--warning" form="delete-user-form">Delete User</button>
             {{ end }}
             <button type="submit" class="card__control card__button card__button--primary">Save</button>
         {{ else }}

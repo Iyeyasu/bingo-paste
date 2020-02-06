@@ -8,19 +8,28 @@
         </div>
 
         <div class="card__body list">
-            {{ if (len .Users) }}
+            {{ if len .Users }}
                 {{ range .Users }}
                 <a class="list__element" href="/users/edit/{{ .ID }}">
                     <div class="list__element__body">
                         <div class="list__element__title">{{ .Name }}</div>
                         <div class="list__element__label">{{ .Role }}</div>
                     </div>
-                    <div class="list__element__footnote">{{ .Email }}</div>
+                    {{ if .Email.Valid }}
+                    <div class="list__element__footnote">{{ .Email.String }}</div>
+                    {{ else }}
+                    <div class="list__element__footnote">-</div>
+                    {{ end }}
                 </a>
                 {{ end }}
             {{ else }}
             <div class="list__empty">No users found</div>
             {{ end }}
+        </div>
+
+        <div class="card_header">
+            <a class="card__control card__button" href="/users?limit={{ .ListLimit }}&offset={{ .ListOffset }}">Prev</a>
+            <a class="card__control card__button" href="/users?limit={{ .ListLimit }}&offset={{ .ListOffset }}">Next</a>
         </div>
     </div>
 </div>

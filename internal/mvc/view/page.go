@@ -11,6 +11,7 @@ import (
 	"bingo/internal/mvc/model"
 	"bingo/internal/session"
 	"bingo/internal/util/fmtutil"
+	"bingo/internal/util/log"
 )
 
 // Page represents a single HTML template page.
@@ -59,7 +60,11 @@ func NewPageContext(r *http.Request, page *Page) PageContext {
 
 // Render renders the page as a HTTP response using the given rendering context.
 func (page *Page) Render(w http.ResponseWriter, ctx interface{}) error {
-	return httpext.WriteTemplate(w, page.Template, ctx)
+	err := httpext.WriteTemplate(w, page.Template, ctx)
+	if err != nil {
+		log.Errorf("Failed to render page %s: %s", page.Name, err)
+	}
+	return err
 }
 
 func newTemplate(paths []string) *template.Template {
