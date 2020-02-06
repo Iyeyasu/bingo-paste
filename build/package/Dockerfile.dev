@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM scratch AS app
 MAINTAINER Ieyasu (ieyasu@protonmail.com)
 WORKDIR /bingo
 COPY build/server .

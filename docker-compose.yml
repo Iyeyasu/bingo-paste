@@ -19,7 +19,7 @@ services:
       - redis:/data
 
   app:
-    image: bingo:latest
+    image: bingo-dev:latest
     container_name: bingo-app
     restart: unless-stopped
     depends_on:
