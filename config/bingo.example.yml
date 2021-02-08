@@ -1,59 +1,100 @@
+# Host of the server (default: 0.0.0.0)
+host: 0.0.0.0
+
+# Port of the server (default: 80)
+port: 80
+
+# Logging level [panic/fatal/error/warn/info/debug/trace] (default: info)
 log_level: debug
 
+# Configurations for the theme of the webpage
 theme:
+  # Default theme for user [light/dark] (default: light)
   default: light
+
+  # Name displayed in the header bar (default: Bingo)
   title: Pastebin
 
 db:
+  # Driver to use for the database [postgres] (default: postgres)
   driver: postgres
+
+  # Hostname of the database (default: localhost)
   host: db
+
+  # Port of the database (default: 5432)
   port: 5432
+
+  # Name of the database (required)
   database: bingo
+
+  # Username of the database user (required)
   username: bingo
+
+  # Password of the database user (required)
   password: bingo
+
+  # Whether to use SSL for connecting to the database [disable/allow/prefer/require/verify-ca/verify-full] (default: require)
+  # See https://www.postgresql.org/docs/9.1/libpq-ssl.html for meaning
   ssl: disable
 
 auth:
-  enabled: true
+  # Whether to enable authentication and users in general
+  enabled: false
+
+  # Default authentication mode to use when creating a new user [standard] (default: standard)
   default_mode: standard
+
+  # Default role to give to a new user [admin/editor/viewer] (default: editor)
   default_role: editor
+
+  # Session specific settings
   session:
+    # Name of the session cookie
     name: session_bingo
+
+    # Whether to use secure cookies
     secure_cookie: false
-    store: redis
+
+    # Where to persist user sessions in [memory/redis/postgres]
+    store: memory
+
+    # If `store: redis` is used, configur redis
     redis:
+      # Hostname of redis (default: localhost)
       host: redis
+
+      # Port of redis (default: 6379)
       port: 6379
+
+      # Password of redis (default: "")
       password: ""
+
+      # Redis datbase to use (default: 0)
       database: 0
+
+  # Configurations for standard authentication
   standard:
+    # Whether standard authentication is enabled
     enabled: true
+
+    # Whether to allow registration of new users
     allow_registration: true
-  ldap:
-    enabled: true
-    host: "localhost"
-    port: 389
-    tls: true
-    base: "ou=users,dc=example,dc=com"
-    bind:
-      dn: ""
-      password: ""
-    attributes:
-      uid: "uid"
-      name: "givenName"
-      email: "mail"
-    filter:
-      user: "(objectClass=posixAccount)"
-      admin: "(memberOf=cn=admin-group,ou=example,dc=example,dc=org)"
-      editor: "(memberOf=cn=admin-group,ou=example,dc=example,dc=org)"
-      viewer: "(memberOf=cn=admin-group,ou=example,dc=example,dc=org)"
 
+# Controls expriations of pastes
 expiry:
+  # Whether to enable paste expiration
   enabled: true
 
+# Controls syntax highlighting of pastes
 highlight:
+  # Whether to enable syntax highlighting
   enabled: true
 
+# Controls visibility of pastes
 visibility:
+  # Whether to enable setting visibility
   enabled: true
+
+  # The default visibility of pastes [public/listed/unlisted] (default: listed)
   default: listed

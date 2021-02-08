@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
 	"bingo/internal/config"
 	"bingo/internal/http/middleware"
@@ -15,6 +17,7 @@ import (
 )
 
 func main() {
+	config.Load(os.Args[1])
 	db := model.NewDatabase()
 	pasteStore := store.NewPasteStore(db)
 	userStore := store.NewUserStore(db)
@@ -33,7 +36,8 @@ func main() {
 	userRoute(router, userCtrl)
 
 	router.NotFound = guestMiddleware(errCtrl.ServeNotFoundError)
-	log.Fatal(http.ListenAndServe(":80", router))
+	addr := fmt.Sprintf("%s:%d", config.Get().Host, config.Get().Port)
+	log.Fatal(http.ListenAndServe(addr, router))
 }
 
 func imageRoute(router *httprouter.Router, imgCtrl *controller.ImageController) {

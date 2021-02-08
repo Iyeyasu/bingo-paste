@@ -1,0 +1,6 @@
+build/
+config/
+*.yml
+*.md
+Makefile
+*.code-workspace

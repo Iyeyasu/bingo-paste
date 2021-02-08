@@ -1,5 +1,5 @@
 FROM scratch AS app
-MAINTAINER Ieyasu (ieyasu@protonmail.com)
+LABEL maintainer="ieyadu@protonmail.com"
 WORKDIR /bingo
 COPY build/server .
 COPY web ./web

@@ -24,7 +24,7 @@ type ThemeConfig struct {
 // DefaultThemeConfig creates a new ThemeConfig with default values.
 func DefaultThemeConfig() ThemeConfig {
 	return ThemeConfig{
-		Title:      "Bingo",
+		Title:      "Pastebin",
 		Default:    ThemeLight,
 		RawDefault: "light",
 		Icon:       "",

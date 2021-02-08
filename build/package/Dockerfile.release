@@ -5,9 +5,9 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -v -o ./server -ldflags '-s -w' ./cmd/server.go
 
 FROM scratch AS app
-MAINTAINER Ieyasu (ieyasu@protonmail.com)
 WORKDIR /bingo
 COPY --from=builder /bingo/server .
 COPY web ./web
-ENTRYPOINT ["/bingo/server"]
+LABEL maintainer="ieyadu@protonmail.com"
+ENTRYPOINT ["/bingo/server", "/bingo/bingo.yml"]
 EXPOSE 80

@@ -13,6 +13,8 @@ var conf *Config
 
 // Config contains all settings.
 type Config struct {
+	Host           string           `yaml:"host"`
+	Port           int              `yaml:"port"`
 	LogLevel       log.Level        `yaml:"-"`
 	RawLogLevel    string           `yaml:"log_level"`
 	Authentication AuthConfig       `yaml:"auth"`
@@ -25,14 +27,11 @@ type Config struct {
 
 // Get returns a default configuration.
 func Get() *Config {
-	if conf == nil {
-		conf = NewConfig("/bingo/bingo.yml")
-	}
 	return conf
 }
 
 // NewConfig returns a new configuration read from the given file.
-func NewConfig(filename string) *Config {
+func Load(filename string) *Config {
 	log.Infof("Reading configuration file '%s'", filename)
 
 	data, err := ioutil.ReadFile(filename)
@@ -40,7 +39,7 @@ func NewConfig(filename string) *Config {
 		log.Fatalf("failed to read config file '%s': %s", filename, err)
 	}
 
-	conf := NewDefaultConfig()
+	conf = NewDefaultConfig()
 	err = yaml.Unmarshal([]byte(data), conf)
 	if err != nil {
 		log.Fatalf("failed to parse config file '%s': %s", filename, err)
@@ -71,6 +70,8 @@ func NewConfig(filename string) *Config {
 // NewDefaultConfig creates a new configuration with default values.
 func NewDefaultConfig() *Config {
 	conf = new(Config)
+	conf.Host = "0.0.0.0"
+	conf.Port = 80
 	conf.RawLogLevel = "info"
 	conf.Authentication = DefaultAuthConfig()
 	conf.Database = DefaultDatabaseConfig()
